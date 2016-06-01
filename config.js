@@ -3,7 +3,7 @@ SystemJS.config({
 	typescriptOptions: {
 		"module": "system",
 		"noImplicitAny": false,
-		"typeCheck": false,
+		"typeCheck": true,
 		"tsconfig": true
 	},
 	packages: {
@@ -20,73 +20,28 @@ SystemJS.config({
 		},
 		"maquette": {
 			"defaultExtension": "ts",
-			"main": "maquette.ts",
-			"meta": {
-				"*.ts": {
-					"loader": "ts"
-				}
-			}
+			"main": "maquette.ts"
 		},
 		"dojo-compose": {
 			"defaultExtension": "ts",
-			"main": "main.ts",
-			"meta": {
-				"*.ts": {
-					"loader": "ts"
-				}
-			}
+			"main": "main.ts"
 		},
 		"dojo-loader": {
 			"defaultExtension": "ts",
-			"main": "loader.ts",
-			"meta": {
-				"*.ts": {
-					"loader": "ts",
-					"typings": false
-				}
-			}
+			"main": "loader.ts"
 		},
 		"dojo-core": {
 			"defaultExtension": "ts",
-			"main": "main.ts",
-			"meta": {
-				"*.ts": {
-					"loader": "ts"
-				}
-			}
+			"main": "main.ts"
 		},
-		"rxjs": {
-			"meta": {
-				"*.js": {
-					"typings": true
-				}
-			}
-		},
-		"immutable": {
-			"defaultExtension": "js",
-			"meta": {
-				"*.js": {
-					"typings": true
-				}
-			}
-		},
+		"rxjs": {},
+		"immutable": {},
 		"symbol-observable": {
-			"defaultExtension": "js",
-			"main": "index.js",
-			"meta": {
-				"*.js": {
-					"typings": true
-				}
-			}
+			"main": "index.js"
 		},
 		"src": {
 			"defaultExtension": "ts",
-			"main": "main.ts",
-			"meta": {
-				"*.ts": {
-					"loader": "ts"
-				}
-			}
+			"main": "main.ts"
 		}
 	},
 	map: {
