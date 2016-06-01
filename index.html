@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		body {
+			padding: 1em;
+		}
+	</style>
+	<title>dojo-widget Examples</title>
+   <base href="/">
+	<script src="node_modules/systemjs/dist/system.js"></script>
+	<script src="config.js"></script>
+</head>
+<body class="basic">
+   <script>
+		System.import('src/index')
+			.then(function() {
+				console.log('running');
+			})
+			.catch(function(err) {
+				console.log(err);
+				console.log(err.originalErr);
+			});
+   </script>
+</body>
+</html>
+

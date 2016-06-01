@@ -1,4 +1,3 @@
-import './util/has!dom-requestanimationframe?:maquette/maquette-polyfills.min'; /* IE9/Node do not support RequestAnimationFrame */
 import { h, createProjector as createMaquetteProjector, Projector as MaquetteProjector, VNode, VNodeProperties } from 'maquette/maquette';
 import compose, { ComposeFactory } from 'dojo-compose/compose';
 import { EventedOptions } from 'dojo-compose/mixins/createEvented';
