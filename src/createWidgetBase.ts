@@ -148,7 +148,10 @@ function formatTagNameAndClasses(tagName: string, classes: string[]) {
 	return tagName;
 }
 
-function generateProperties(changedPropertyKeys: string[], previousProperties: any, currentProperties: any): any {
+function generateProperties(changedPropertyKeys: string[], previousProperties: WidgetProperties, currentProperties: WidgetProperties): {
+	currentProperties: WidgetProperties,
+	previousProperties: WidgetProperties
+} {
 	const changedProperties: { currentProperties: any, previousProperties: any } = {
 		currentProperties: {},
 		previousProperties: {}
