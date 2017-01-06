@@ -163,6 +163,13 @@ function generateProperties(changedPropertyKeys: string[], previousProperties: W
 	return changedProperties;
 }
 
+function runPropertyLifecycle(instance: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties): void {
+	const changedPropertyKeys = instance.diffProperties(previousProperties);
+	const updatedProperties = generateProperties(changedPropertyKeys, previousProperties, instance.properties);
+	instance.properties = instance.copyProperties(updatedProperties.previousProperties, updatedProperties.currentProperties);
+	instance.applyChangedProperties(changedPropertyKeys);
+}
+
 const createWidget: WidgetFactory = createStateful
 	.mixin(createVNodeEvented)
 	.mixin<WidgetMixin<WidgetProperties>, WidgetOptions<WidgetState, WidgetProperties>>({
@@ -261,10 +268,7 @@ const createWidget: WidgetFactory = createStateful
 
 			__render__(this: Widget<WidgetState, WidgetProperties>): VNode | string | null {
 				const internalState = widgetInternalStateMap.get(this);
-				const changedPropertyKeys = this.diffProperties(internalState.previousProperties);
-				const updatedProperties = generateProperties(changedPropertyKeys, internalState.previousProperties, this.properties);
-				this.properties = this.copyProperties(updatedProperties.previousProperties, updatedProperties.currentProperties);
-				this.applyChangedProperties(changedPropertyKeys);
+				runPropertyLifecycle(this, internalState.previousProperties);
 
 				if (internalState.dirty || !internalState.cachedVNode) {
 					const widget = dNodeToVNode(this, this.getNode());
@@ -291,13 +295,12 @@ const createWidget: WidgetFactory = createStateful
 
 			instance.tagName = tagName || instance.tagName;
 			instance.properties = properties;
-			instance.properties = instance.copyProperties({}, properties);
 
 			widgetInternalStateMap.set(instance, {
 				id,
 				dirty: true,
 				widgetClasses: [],
-				previousProperties: instance.properties,
+				previousProperties: {},
 				factoryRegistry: new FactoryRegistry(),
 				initializedFactoryMap: new Map<string, Promise<WidgetFactory>>(),
 				historicChildrenMap: new Map<string | Promise<WidgetFactory> | WidgetFactory, Widget<WidgetState, WidgetProperties>>(),
@@ -305,7 +308,7 @@ const createWidget: WidgetFactory = createStateful
 				children: []
 			});
 
-			instance.applyChangedProperties(Object.keys(instance.properties));
+			runPropertyLifecycle(instance, {});
 
 			instance.own(instance.on('state:changed', () => {
 				instance.invalidate();
