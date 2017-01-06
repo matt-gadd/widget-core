@@ -7,7 +7,7 @@ import { deepAssign } from 'dojo-core/lang';
  */
 export interface ShallowPropertyComparisonMixin {
 	diffProperties<T>(previousProperties: T): string[];
-	copyProperties<T>(previousProperties: T, copyProperties: T): any;
+	copyProperties<T>(previousProperties: T, copyProperties: T): T;
 }
 
 /**
