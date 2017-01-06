@@ -106,8 +106,9 @@ registerSuite({
 	copyProperties: {
 		'returns properties to be applied to this.properties'() {
 			const widgetBase = createWidgetBase();
-			const properties = widgetBase.copyProperties({ foo: true }, { bar: true });
-			assert.deepEqual(properties, { foo: true, bar: true });
+			widgetBase.properties = { foo: true };
+			const properties = widgetBase.copyProperties({}, {});
+			assert.deepEqual(properties, { foo: true });
 		}
 	},
 	applyChangedProperties() {

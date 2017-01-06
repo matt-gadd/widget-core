@@ -290,6 +290,7 @@ const createWidget: WidgetFactory = createStateful
 			const id = properties.id || options.id || generateID(instance);
 
 			instance.tagName = tagName || instance.tagName;
+			instance.properties = properties;
 			instance.properties = instance.copyProperties({}, properties);
 
 			widgetInternalStateMap.set(instance, {
