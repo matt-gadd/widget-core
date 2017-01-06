@@ -148,15 +148,14 @@ function formatTagNameAndClasses(tagName: string, classes: string[]) {
 	return tagName;
 }
 
-function generateProperties(instance: Widget<WidgetState, WidgetProperties>, previousProperties: any): any {
-	const changedPropertyKeys = instance.diffProperties(previousProperties);
+function generateProperties(changedPropertyKeys: string[], previousProperties: any, currentProperties: any): any {
 	const changedProperties: { currentProperties: any, previousProperties: any } = {
 		currentProperties: {},
 		previousProperties: {}
 	};
 
 	changedPropertyKeys.forEach((key) => {
-		changedProperties.currentProperties[key] = instance.properties[key];
+		changedProperties.currentProperties[key] = currentProperties[key];
 		if (previousProperties[key]) {
 			changedProperties.previousProperties[key] = previousProperties[key];
 		}
@@ -231,10 +230,10 @@ const createWidget: WidgetFactory = createStateful
 				return assign({}, previousProperties, currentProperties);
 			},
 
-			applyChangedProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): void {
-				if (Object.keys(currentProperties).length) {
-					currentProperties['id'] = this.id;
-					this.setState(currentProperties);
+			applyChangedProperties: function(this: Widget<WidgetState, WidgetProperties>, propertiesChanged: string[]): void {
+				if (propertiesChanged.length) {
+					this.properties['id'] = this.id;
+					this.setState(this.properties);
 				}
 			},
 
@@ -259,9 +258,10 @@ const createWidget: WidgetFactory = createStateful
 
 			__render__(this: Widget<WidgetState, WidgetProperties>): VNode | string | null {
 				const internalState = widgetInternalStateMap.get(this);
-				const updatedProperties = generateProperties(this, internalState.previousProperties);
+				const changedPropertyKeys = this.diffProperties(internalState.previousProperties);
+				const updatedProperties = generateProperties(changedPropertyKeys, internalState.previousProperties, this.properties);
 				this.properties = this.copyProperties(updatedProperties.previousProperties, updatedProperties.currentProperties);
-				this.applyChangedProperties(updatedProperties.previousProperties, updatedProperties.currentProperties);
+				this.applyChangedProperties(changedPropertyKeys);
 
 				if (internalState.dirty || !internalState.cachedVNode) {
 					const widget = dNodeToVNode(this, this.getNode());
@@ -286,14 +286,14 @@ const createWidget: WidgetFactory = createStateful
 			const { tagName, properties = {} } = options;
 			const id = properties.id || options.id || generateID(instance);
 
-			instance.properties = properties;
 			instance.tagName = tagName || instance.tagName;
+			instance.properties = instance.copyProperties({}, properties);
 
 			widgetInternalStateMap.set(instance, {
 				id,
 				dirty: true,
 				widgetClasses: [],
-				previousProperties: properties,
+				previousProperties: instance.properties,
 				factoryRegistry: new FactoryRegistry(),
 				initializedFactoryMap: new Map<string, Promise<WidgetFactory>>(),
 				historicChildrenMap: new Map<string | Promise<WidgetFactory> | WidgetFactory, Widget<WidgetState, WidgetProperties>>(),
@@ -301,7 +301,8 @@ const createWidget: WidgetFactory = createStateful
 				children: []
 			});
 
-			instance.applyChangedProperties({}, properties);
+			instance.applyChangedProperties(Object.keys(instance.properties));
+
 			instance.own(instance.on('state:changed', () => {
 				instance.invalidate();
 			}));

@@ -158,7 +158,7 @@ export interface WidgetMixin<P extends WidgetProperties> {
 	/**
 	 * apply change in properties
 	 */
-	applyChangedProperties(previousProperties: Partial<P>, currentProperties: Partial<P>): void;
+	applyChangedProperties(propertiesChanged: string[]): void;
 
 	/**
 	 * The ID of the widget, which gets automatically rendered in the VNode property `data-widget-id` when
