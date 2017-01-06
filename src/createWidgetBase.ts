@@ -227,15 +227,15 @@ const createWidget: WidgetFactory = createStateful
 				return Object.keys(this.properties);
 			},
 
+			copyProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): WidgetProperties {
+				return assign({}, previousProperties, currentProperties);
+			},
+
 			applyChangedProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): void {
 				if (Object.keys(currentProperties).length) {
 					currentProperties['id'] = this.id;
 					this.setState(currentProperties);
 				}
-			},
-
-			copyProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): WidgetProperties {
-				return assign({}, previousProperties, currentProperties);
 			},
 
 			nodeAttributes: [

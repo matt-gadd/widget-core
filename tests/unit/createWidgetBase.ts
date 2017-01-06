@@ -103,6 +103,13 @@ registerSuite({
 			assert.deepEqual(updatedKeys, [ 'foo', 'bar', 'baz', 'qux']);
 		}
 	},
+	copyProperties: {
+		'returns properties to be applied to this.properties'() {
+			const widgetBase = createWidgetBase();
+			const properties = widgetBase.copyProperties({ foo: true }, { bar: true });
+			assert.deepEqual(properties, { foo: true, bar: true });
+		}
+	},
 	applyChangedProperties() {
 		const widgetBase = createWidgetBase({ id: 'id' });
 		widgetBase.applyChangedProperties({}, { foo: 'bar' });
