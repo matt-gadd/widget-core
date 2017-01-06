@@ -12,7 +12,7 @@ import {
 	FactoryRegistryItem
 } from './interfaces';
 import { VNode, VNodeProperties } from 'dojo-interfaces/vdom';
-import { deepAssign, assign } from 'dojo-core/lang';
+import { assign } from 'dojo-core/lang';
 import WeakMap from 'dojo-shim/WeakMap';
 import Promise from 'dojo-shim/Promise';
 import Map from 'dojo-shim/Map';
@@ -223,6 +223,10 @@ const createWidget: WidgetFactory = createStateful
 				return id;
 			},
 
+			diffProperties(this: Widget<WidgetState, WidgetProperties>, previousProperties: any): string[] {
+				return Object.keys(this.properties);
+			},
+
 			applyChangedProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): void {
 				if (Object.keys(currentProperties).length) {
 					currentProperties['id'] = this.id;
@@ -230,8 +234,8 @@ const createWidget: WidgetFactory = createStateful
 				}
 			},
 
-			diffProperties(this: Widget<WidgetState, WidgetProperties>, previousProperties: any): string[] {
-				return Object.keys(this.properties);
+			copyProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): any {
+				return assign({}, previousProperties, currentProperties);
 			},
 
 			nodeAttributes: [
@@ -256,6 +260,7 @@ const createWidget: WidgetFactory = createStateful
 			__render__(this: Widget<WidgetState, WidgetProperties>): VNode | string | null {
 				const internalState = widgetInternalStateMap.get(this);
 				const updatedProperties = generateProperties(this, internalState.previousProperties);
+				this.properties = this.copyProperties(updatedProperties.previousProperties, updatedProperties.currentProperties);
 				this.applyChangedProperties(updatedProperties.previousProperties, updatedProperties.currentProperties);
 
 				if (internalState.dirty || !internalState.cachedVNode) {
@@ -265,7 +270,7 @@ const createWidget: WidgetFactory = createStateful
 						internalState.cachedVNode = widget;
 					}
 					internalState.dirty = false;
-					internalState.previousProperties = deepAssign({}, this.properties);
+					internalState.previousProperties = this.properties;
 					return widget;
 				}
 				return internalState.cachedVNode;
@@ -288,7 +293,7 @@ const createWidget: WidgetFactory = createStateful
 				id,
 				dirty: true,
 				widgetClasses: [],
-				previousProperties: deepAssign({}, properties),
+				previousProperties: properties,
 				factoryRegistry: new FactoryRegistry(),
 				initializedFactoryMap: new Map<string, Promise<WidgetFactory>>(),
 				historicChildrenMap: new Map<string | Promise<WidgetFactory> | WidgetFactory, Widget<WidgetState, WidgetProperties>>(),

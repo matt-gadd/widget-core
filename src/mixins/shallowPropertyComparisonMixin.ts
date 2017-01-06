@@ -1,11 +1,13 @@
 import { entries } from 'dojo-shim/object';
 import { WidgetProperties } from './../interfaces';
+import { deepAssign } from 'dojo-core/lang';
 
 /**
  * Interface for `diffProperties`
  */
 export interface ShallowPropertyComparisonMixin {
 	diffProperties<T>(previousProperties: T): string[];
+	copyProperties<T>(previousProperties: T, copyProperties: T): any;
 }
 
 /**
@@ -72,6 +74,9 @@ const shallowPropertyComparisonMixin: { mixin: ShallowPropertyComparisonMixin } 
 				}
 			});
 			return changedPropertyKeys;
+		},
+		copyProperties<T extends WidgetProperties>(this: { properties: T }, previousProperties: T, currentProperties: T): any {
+			return deepAssign({}, previousProperties, currentProperties);
 		}
 	}
 };

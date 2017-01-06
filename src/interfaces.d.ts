@@ -151,6 +151,11 @@ export interface WidgetMixin<P extends WidgetProperties> {
 	diffProperties(this: Widget<WidgetState, WidgetProperties>, previousProperties: P): string[];
 
 	/**
+	 * copy in properties
+	 */
+	copyProperties(previousProperties: Partial<P>, currentProperties: Partial<P>): any;
+
+	/**
 	 * apply change in properties
 	 */
 	applyChangedProperties(previousProperties: Partial<P>, currentProperties: Partial<P>): void;
