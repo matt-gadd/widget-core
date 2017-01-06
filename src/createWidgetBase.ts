@@ -226,13 +226,17 @@ const createWidget: WidgetFactory = createStateful
 			},
 
 			copyProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): WidgetProperties {
-				return assign({}, previousProperties, currentProperties);
+				return assign({}, currentProperties);
 			},
 
 			applyChangedProperties: function(this: Widget<WidgetState, WidgetProperties>, propertiesChanged: string[]): void {
 				if (propertiesChanged.length) {
-					this.properties['id'] = this.id;
-					this.setState(this.properties);
+					const state: WidgetState = propertiesChanged.reduce((prev, current) => {
+						prev[current] = this.properties[current];
+						return prev;
+					}, <any> {});
+					state.id = this.id;
+					this.setState(state);
 				}
 			},
 
