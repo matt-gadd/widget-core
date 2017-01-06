@@ -75,7 +75,7 @@ const shallowPropertyComparisonMixin: { mixin: ShallowPropertyComparisonMixin } 
 			});
 			return changedPropertyKeys;
 		},
-		copyProperties<T extends WidgetProperties>(this: { properties: T }, previousProperties: T, currentProperties: T): any {
+		copyProperties<T extends WidgetProperties>(this: { properties: T }, previousProperties: T, currentProperties: T): T {
 			return deepAssign({}, previousProperties, currentProperties);
 		}
 	}

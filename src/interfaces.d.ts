@@ -153,7 +153,7 @@ export interface WidgetMixin<P extends WidgetProperties> {
 	/**
 	 * copy in properties
 	 */
-	copyProperties(previousProperties: Partial<P>, currentProperties: Partial<P>): any;
+	copyProperties(previousProperties: Partial<P>, currentProperties: Partial<P>): Partial<P>;
 
 	/**
 	 * apply change in properties

@@ -234,7 +234,7 @@ const createWidget: WidgetFactory = createStateful
 				}
 			},
 
-			copyProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): any {
+			copyProperties: function(this: Widget<WidgetState, WidgetProperties>, previousProperties: WidgetProperties, currentProperties: WidgetProperties): WidgetProperties {
 				return assign({}, previousProperties, currentProperties);
 			},
 
