@@ -23,6 +23,12 @@ import { v, registry } from './d';
 import FactoryRegistry from './FactoryRegistry';
 import shallowPropertyComparisonMixin from './mixins/shallowPropertyComparisonMixin';
 
+interface CachedChildWrapper {
+	used: boolean;
+	factory: WidgetBaseFactory;
+	instance: Widget<WidgetProperties>;
+}
+
 interface WidgetInternalState {
 	children: DNode[];
 	dirty: boolean;
@@ -32,8 +38,7 @@ interface WidgetInternalState {
 	initializedFactoryMap: Map<string, Promise<WidgetBaseFactory>>;
 	properties: WidgetProperties;
 	previousProperties: WidgetProperties;
-	historicChildrenMap: Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, Widget<WidgetProperties>>;
-	currentChildrenMap: Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, Widget<WidgetProperties>>;
+	historicChildrenMap: Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, CachedChildWrapper[]>;
 	diffPropertyFunctionMap: Map<string, string>;
 };
 
@@ -89,30 +94,33 @@ function dNodeToVNode(instance: Widget<WidgetProperties>, dNode: DNode): VNode |
 		}
 
 		const childrenMapKey = id || factory;
-		const cachedChild = internalState.historicChildrenMap.get(childrenMapKey);
+		const cachedChildren = internalState.historicChildrenMap.get(childrenMapKey) || [];
 
-		if (cachedChild) {
-			child = cachedChild;
+		const cachedChild = cachedChildren.filter((cachedChildWrapper) => {
+			return !cachedChildWrapper.used && cachedChildWrapper.factory === factory;
+		});
+
+		if (cachedChild.length) {
+			child = cachedChild[0].instance;
 			if (properties) {
 				child.setProperties(properties);
 			}
+			cachedChild[0].used = true;
 		}
 		else {
 			child = factory({ properties });
 			child.own(child.on('invalidated', () => {
 				instance.invalidate();
 			}));
-			internalState.historicChildrenMap.set(childrenMapKey, child);
+			const childWrapper = {
+				used: true,
+				instance: child,
+				factory
+			};
+			internalState.historicChildrenMap.set(childrenMapKey, [ ...cachedChildren, childWrapper ]);
 			instance.own(child);
 		}
-		if (!id && internalState.currentChildrenMap.has(factory)) {
-			const errorMsg = 'must provide unique keys when using the same widget factory multiple times';
-			console.error(errorMsg);
-			instance.emit({ type: 'error', target: instance, error: new Error(errorMsg) });
-		}
-
 		child.children = children;
-		internalState.currentChildrenMap.set(childrenMapKey, child);
 
 		return child.__render__();
 	}
@@ -129,13 +137,17 @@ function dNodeToVNode(instance: Widget<WidgetProperties>, dNode: DNode): VNode |
 function manageDetachedChildren(instance: Widget<WidgetProperties>): void {
 	const internalState = widgetInternalStateMap.get(instance);
 
-	internalState.historicChildrenMap.forEach((child, key) => {
-		if (!internalState.currentChildrenMap.has(key)) {
-			internalState.historicChildrenMap.delete(key);
-			child.destroy();
-		}
+	internalState.historicChildrenMap.forEach((cachedChildWrappers, key) => {
+		const toSet = cachedChildWrappers.filter((cachedChildWrapper) => {
+			if (!cachedChildWrapper.used) {
+				cachedChildWrapper.instance.destroy();
+				return false;
+			}
+			cachedChildWrapper.used = false;
+			return true;
+		});
+		internalState.historicChildrenMap.set(key, toSet);
 	});
-	internalState.currentChildrenMap.clear();
 }
 
 function formatTagNameAndClasses(tagName: string, classes: string[]) {
@@ -319,8 +331,7 @@ const createWidget: WidgetBaseFactory = createStateful
 				previousProperties: {},
 				factoryRegistry: new FactoryRegistry(),
 				initializedFactoryMap: new Map<string, Promise<WidgetBaseFactory>>(),
-				historicChildrenMap: new Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, Widget<WidgetProperties>>(),
-				currentChildrenMap: new Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, Widget<WidgetProperties>>(),
+				historicChildrenMap: new Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, CachedChildWrapper[]>(),
 				diffPropertyFunctionMap,
 				children: []
 			});
