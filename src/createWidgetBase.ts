@@ -33,7 +33,6 @@ interface WidgetInternalState {
 	initializedFactoryMap: Map<string, Promise<WidgetBaseFactory>>;
 	properties: WidgetProperties;
 	previousProperties: WidgetProperties;
-	computedProperties: WidgetProperties;
 	cachedChildrenMap: Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, WidgetCacheWrapper[]>;
 	diffPropertyFunctionMap: Map<string, string>;
 };
@@ -157,22 +156,12 @@ function formatTagNameAndClasses(tagName: string, classes: string[]) {
 	return tagName;
 }
 
-function computeProperties(instance: any, properties: any): any {
-	const result = Object.keys(properties).reduce((newProperties, propertyName) => {
-		if (typeof properties[propertyName] === 'function') {
-			newProperties[propertyName] = properties[propertyName].bind(properties.scope);
-		}
-		return newProperties;
-	}, {} as any);
-	return assign(properties, result);
-}
-
 const createWidget: WidgetBaseFactory = createEvented
 	.mixin<WidgetMixin<WidgetProperties>, WidgetOptions<WidgetProperties>>({
 		mixin: {
 			get properties(this: Widget<WidgetProperties>): WidgetProperties {
-				const { computedProperties } = widgetInternalStateMap.get(this);
-				return computedProperties;
+				const { properties } = widgetInternalStateMap.get(this);
+				return properties;
 			},
 
 			classes: [],
@@ -257,7 +246,6 @@ const createWidget: WidgetBaseFactory = createEvented
 
 				const diffPropertiesResult = this.diffProperties(internalState.previousProperties, properties);
 				internalState.properties = assign(diffPropertiesResult.properties, diffPropertyResults);
-				internalState.computedProperties = computeProperties(this, internalState.properties);
 
 				const changedPropertyKeys = [...diffPropertiesResult.changedKeys, ...diffPropertyChangedKeys];
 
@@ -269,7 +257,7 @@ const createWidget: WidgetBaseFactory = createEvented
 						changedPropertyKeys
 					});
 				}
-				internalState.previousProperties = internalState.properties;
+				internalState.previousProperties = this.properties;
 			},
 
 			diffProperties(this: Widget<WidgetProperties>, previousProperties: WidgetProperties, newProperties: WidgetProperties): PropertiesChangeRecord<WidgetProperties> {
@@ -338,7 +326,6 @@ const createWidget: WidgetBaseFactory = createEvented
 				widgetClasses: [],
 				properties: {},
 				previousProperties: {},
-				computedProperties: {},
 				initializedFactoryMap: new Map<string, Promise<WidgetBaseFactory>>(),
 				cachedChildrenMap: new Map<string | Promise<WidgetBaseFactory> | WidgetBaseFactory, WidgetCacheWrapper[]>(),
 				diffPropertyFunctionMap,
