@@ -94,8 +94,8 @@ function dNodeToVNode(instance: Widget<WidgetProperties>, dNode: DNode): VNode |
 			return false;
 		});
 
-		if (!properties.hasOwnProperty('scope')) {
-			properties['scope'] = instance;
+		if (!properties.hasOwnProperty('bind')) {
+			properties['bind'] = instance;
 		}
 
 		if (cachedChild) {
@@ -156,6 +156,21 @@ function formatTagNameAndClasses(tagName: string, classes: string[]) {
 	return tagName;
 }
 
+function bindFunctionProperties(properties: WidgetProperties) {
+	Object.keys(properties).forEach((propertyKey) => {
+		const func = properties[propertyKey];
+		const bind = properties['bind'];
+
+		if (typeof func === 'function') {
+			if (!func.hasOwnProperty('bound') || func.scope !== bind) {
+				func.bound = func.bind(bind);
+				func.scope = bind;
+			}
+			properties[propertyKey] = func.bound;
+		}
+	});
+}
+
 const createWidget: WidgetBaseFactory = createEvented
 	.mixin<WidgetMixin<WidgetProperties>, WidgetOptions<WidgetProperties>>({
 		mixin: {
@@ -214,18 +229,13 @@ const createWidget: WidgetBaseFactory = createEvented
 				return this.properties.id;
 			},
 
-			diffPropertyScope(previousValue: any, value: any): PropertyChangeRecord {
-				return {
-					changed: previousValue !== value,
-					value: value
-				};
-			},
-
 			setProperties(this: Widget<WidgetProperties>, properties: WidgetProperties) {
 				const internalState = widgetInternalStateMap.get(this);
 
 				const diffPropertyResults: { [index: string]: PropertyChangeRecord } = {};
 				const diffPropertyChangedKeys: string[] = [];
+
+				bindFunctionProperties(properties);
 
 				internalState.diffPropertyFunctionMap.forEach((property: string, diffFunctionName: string) => {
 					const previousProperty = internalState.previousProperties[property];
@@ -243,7 +253,6 @@ const createWidget: WidgetBaseFactory = createEvented
 					delete internalState.previousProperties[property];
 					diffPropertyResults[property] = result.value;
 				});
-
 				const diffPropertiesResult = this.diffProperties(internalState.previousProperties, properties);
 				internalState.properties = assign(diffPropertiesResult.properties, diffPropertyResults);
 
@@ -267,7 +276,7 @@ const createWidget: WidgetBaseFactory = createEvented
 					}
 					return changedPropertyKeys;
 				}, []);
-
+				console.log(changedKeys);
 				return { changedKeys, properties: assign({}, newProperties) };
 			},
 

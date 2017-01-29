@@ -10,7 +10,7 @@ import FactoryRegistry from './../../src/FactoryRegistry';
 
 registerSuite({
 	name: 'bases/createWidgetBase',
-	api() {
+	/*api() {
 		const widgetBase = createWidgetBase();
 		assert(widgetBase);
 		assert.isFunction(widgetBase.getNodeAttributes);
@@ -667,7 +667,7 @@ registerSuite({
 		'is read only'() {
 			const widgetBase = createWidgetBase();
 			assert.throws(() => {
-				(<any> widgetBase).id = 'foo'; /* .id is readonly, so TypeScript will prevent mutation */
+				(<any> widgetBase).id = 'foo'; [> .id is readonly, so TypeScript will prevent mutation <]
 			});
 		}
 	},
@@ -681,13 +681,12 @@ registerSuite({
 		widgetBase.__render__();
 		widgetBase.invalidate();
 		assert.strictEqual(count, 1);
-	},
-	'scope'() {
-		let foo;
+	},*/
+	'bind'() {
 		const createChildWidget = createWidgetBase.mixin({
 			mixin: {
 				getChildrenNodes(this: any): DNode[] {
-					foo = this.properties.foo();
+					this.properties.foo();
 					return [];
 				}
 			}
@@ -695,13 +694,18 @@ registerSuite({
 
 		const createTestWidget = createWidgetBase.mixin({
 			mixin: {
-				_foo: 'foo',
+				count: 0,
 				foo(this: any) {
-					return this._foo;
+					this.count++;
 				},
 				getChildrenNodes(this: any): DNode[] {
+					const bind = this.count < 3 ? this : undefined;
 					return [
-						w(createChildWidget, { foo: this.foo })
+						w(createChildWidget, {
+							foo: this.foo,
+							bar: Math.random(),
+							bind
+						})
 					];
 				}
 			}
@@ -709,6 +713,20 @@ registerSuite({
 
 		const testWidget = createTestWidget();
 		testWidget.__render__();
-		assert.strictEqual(foo, 'foo');
+		assert.strictEqual(testWidget.count, 1);
+		testWidget.invalidate();
+		testWidget.__render__();
+		assert.strictEqual(testWidget.count, 2);
+		testWidget.invalidate();
+		testWidget.__render__();
+		assert.strictEqual(testWidget.count, 3);
+		testWidget.invalidate();
+
+		try {
+			testWidget.__render__();
+		}
+		catch (e) {
+		}
+		assert.strictEqual(testWidget.count, 3);
 	}
 });
