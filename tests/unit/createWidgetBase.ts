@@ -681,5 +681,34 @@ registerSuite({
 		widgetBase.__render__();
 		widgetBase.invalidate();
 		assert.strictEqual(count, 1);
+	},
+	'scope'() {
+		let foo;
+		const createChildWidget = createWidgetBase.mixin({
+			mixin: {
+				getChildrenNodes(this: any): DNode[] {
+					foo = this.properties.foo();
+					return [];
+				}
+			}
+		});
+
+		const createTestWidget = createWidgetBase.mixin({
+			mixin: {
+				_foo: 'foo',
+				foo(this: any) {
+					return this._foo;
+				},
+				getChildrenNodes(this: any): DNode[] {
+					return [
+						w(createChildWidget, { foo: this.foo })
+					];
+				}
+			}
+		});
+
+		const testWidget = createTestWidget();
+		testWidget.__render__();
+		assert.strictEqual(foo, 'foo');
 	}
 });
