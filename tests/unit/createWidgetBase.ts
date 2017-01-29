@@ -696,7 +696,7 @@ registerSuite({
 			mixin: {
 				count: 0,
 				foo(this: any) {
-					this.count++;
+					this && this.count++;
 				},
 				getChildrenNodes(this: any): DNode[] {
 					const bind = this.count < 3 ? this : undefined;
@@ -721,12 +721,7 @@ registerSuite({
 		testWidget.__render__();
 		assert.strictEqual(testWidget.count, 3);
 		testWidget.invalidate();
-
-		try {
-			testWidget.__render__();
-		}
-		catch (e) {
-		}
+		testWidget.__render__();
 		assert.strictEqual(testWidget.count, 3);
 	}
 });
