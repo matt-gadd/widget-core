@@ -232,6 +232,13 @@ const createWidget: WidgetBaseFactory = createEvented
 				return this.properties.id;
 			},
 
+			diffPropertyBind(previousValue: any, value: any): PropertyChangeRecord {
+				return {
+					changed: previousValue !== value,
+					value: value
+				};
+			},
+
 			setProperties(this: Widget<WidgetProperties>, properties: WidgetProperties) {
 				const internalState = widgetInternalStateMap.get(this);
 
