@@ -98,7 +98,7 @@ function dNodeToVNode(instance: Widget<WidgetProperties>, dNode: DNode): VNode |
 		});
 
 		if (!properties.hasOwnProperty('bind')) {
-			properties['bind'] = instance;
+			properties.bind = instance;
 		}
 
 		if (cachedChild) {
@@ -162,7 +162,7 @@ function formatTagNameAndClasses(tagName: string, classes: string[]) {
 function bindFunctionProperties(properties: WidgetProperties) {
 	Object.keys(properties).forEach((propertyKey) => {
 		const func = properties[propertyKey];
-		const bind = properties['bind'];
+		const bind = properties.bind;
 
 		if (typeof func === 'function') {
 			if (!func[bindSymbol] || func[scopeSymbol] !== bind) {
