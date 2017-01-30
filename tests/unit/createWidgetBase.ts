@@ -151,6 +151,48 @@ registerSuite({
 			});
 
 			widgetBase.setProperties({ foo: 'baz' });
+		},
+		'widgets function properties are bound to the parent by default'() {
+			const createChildWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						this.properties.foo();
+						return [];
+					}
+				}
+			});
+
+			const createTestWidget = createWidgetBase.mixin({
+				mixin: {
+					count: 0,
+					foo(this: any) {
+						this && this.count++;
+					},
+					getChildrenNodes(this: any): DNode[] {
+						const bind = this.count < 3 ? this : undefined;
+						return [
+							w(createChildWidget, {
+								foo: this.foo,
+								bar: Math.random(),
+								bind
+							})
+						];
+					}
+				}
+			});
+
+			const testWidget = createTestWidget();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 1);
+			testWidget.invalidate();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 2);
+			testWidget.invalidate();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 3);
+			testWidget.invalidate();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 3);
 		}
 	},
 	getChildrenNodes: {
@@ -681,47 +723,5 @@ registerSuite({
 		widgetBase.__render__();
 		widgetBase.invalidate();
 		assert.strictEqual(count, 1);
-	},
-	'widgets function properties are bound to the parent by default'() {
-		const createChildWidget = createWidgetBase.mixin({
-			mixin: {
-				getChildrenNodes(this: any): DNode[] {
-					this.properties.foo();
-					return [];
-				}
-			}
-		});
-
-		const createTestWidget = createWidgetBase.mixin({
-			mixin: {
-				count: 0,
-				foo(this: any) {
-					this && this.count++;
-				},
-				getChildrenNodes(this: any): DNode[] {
-					const bind = this.count < 3 ? this : undefined;
-					return [
-						w(createChildWidget, {
-							foo: this.foo,
-							bar: Math.random(),
-							bind
-						})
-					];
-				}
-			}
-		});
-
-		const testWidget = createTestWidget();
-		testWidget.__render__();
-		assert.strictEqual(testWidget.count, 1);
-		testWidget.invalidate();
-		testWidget.__render__();
-		assert.strictEqual(testWidget.count, 2);
-		testWidget.invalidate();
-		testWidget.__render__();
-		assert.strictEqual(testWidget.count, 3);
-		testWidget.invalidate();
-		testWidget.__render__();
-		assert.strictEqual(testWidget.count, 3);
 	}
 });
