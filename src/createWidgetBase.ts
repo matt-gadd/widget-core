@@ -279,7 +279,6 @@ const createWidget: WidgetBaseFactory = createEvented
 					}
 					return changedPropertyKeys;
 				}, []);
-				console.log(changedKeys);
 				return { changedKeys, properties: assign({}, newProperties) };
 			},
 
