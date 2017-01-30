@@ -44,6 +44,9 @@ const widgetInternalStateMap = new WeakMap<Widget<WidgetProperties>, WidgetInter
 
 const propertyFunctionNameRegex = /^diffProperty(.*)/;
 
+const bindSymbol = Symbol('bind');
+const scopeSymbol = Symbol('scope');
+
 function getFromRegistry(instance: Widget<WidgetProperties>, factoryLabel: string): FactoryRegistryItem | null {
 	if (instance.registry && instance.registry.has(factoryLabel)) {
 		return instance.registry.get(factoryLabel);
@@ -162,11 +165,11 @@ function bindFunctionProperties(properties: WidgetProperties) {
 		const bind = properties['bind'];
 
 		if (typeof func === 'function') {
-			if (!func.hasOwnProperty('bound') || func.scope !== bind) {
-				func.bound = func.bind(bind);
-				func.scope = bind;
+			if (!func[bindSymbol] || func[scopeSymbol] !== bind) {
+				func[bindSymbol] = func.bind(bind);
+				func[scopeSymbol] = bind;
 			}
-			properties[propertyKey] = func.bound;
+			properties[propertyKey] = func[bindSymbol];
 		}
 	});
 }

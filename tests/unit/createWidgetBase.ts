@@ -10,7 +10,7 @@ import FactoryRegistry from './../../src/FactoryRegistry';
 
 registerSuite({
 	name: 'bases/createWidgetBase',
-	/*api() {
+	api() {
 		const widgetBase = createWidgetBase();
 		assert(widgetBase);
 		assert.isFunction(widgetBase.getNodeAttributes);
@@ -43,12 +43,12 @@ registerSuite({
 			assert.deepEqual(widget.tagName, 'header');
 			const renderedWidget = <VNode> widget.__render__();
 			assert.deepEqual(renderedWidget.vnodeSelector, 'header');
-		}
 		},
 		'Applies classes to tagName'() {
 			const widget = createWidgetBase.override({ tagName: 'header', classes: [ 'class-one', 'classTwo' ] })();
 			const renderedWidget = <VNode> widget.__render__();
 			assert.deepEqual(renderedWidget.vnodeSelector, 'header.class-one.classTwo');
+		}
 	},
 	'getNodeAttributes()'() {
 		const widgetBase = createWidgetBase({
@@ -667,7 +667,7 @@ registerSuite({
 		'is read only'() {
 			const widgetBase = createWidgetBase();
 			assert.throws(() => {
-				(<any> widgetBase).id = 'foo'; [> .id is readonly, so TypeScript will prevent mutation <]
+				(<any> widgetBase).id = 'foo'; /* .id is readonly, so TypeScript will prevent mutation */
 			});
 		}
 	},
@@ -681,8 +681,8 @@ registerSuite({
 		widgetBase.__render__();
 		widgetBase.invalidate();
 		assert.strictEqual(count, 1);
-	},*/
-	'bind'() {
+	},
+	'widgets function properties are bound to the parent by default'() {
 		const createChildWidget = createWidgetBase.mixin({
 			mixin: {
 				getChildrenNodes(this: any): DNode[] {
