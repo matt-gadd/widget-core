@@ -268,6 +268,54 @@ registerSuite({
 			testWidget.__render__();
 			assert.strictEqual(foo.count, 1);
 			assert.strictEqual(testWidget.count, 1);
+		},
+		'widget function properties can do not get re-bound when nested'() {
+			const createChildWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						this.properties.foo();
+						return [];
+					}
+				}
+			});
+
+			const createNestedWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						const { foo, bar } = this.properties;
+						return [
+							w(createChildWidget, {
+								foo,
+								bar
+							})
+						];
+					}
+				}
+			});
+
+			const createTestWidget = createWidgetBase.mixin({
+				mixin: {
+					count: 0,
+					foo(this: any) {
+						this.count++;
+					},
+					getChildrenNodes(this: any): DNode[] {
+						return [
+							w(createNestedWidget, {
+								foo: this.foo,
+								bar: Math.random()
+							})
+						];
+					}
+				}
+			});
+
+			const testWidget = createTestWidget();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 1);
+			testWidget.invalidate();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 2);
 		}
 	},
 	getChildrenNodes: {
