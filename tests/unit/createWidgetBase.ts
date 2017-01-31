@@ -269,7 +269,7 @@ registerSuite({
 			assert.strictEqual(foo.count, 1);
 			assert.strictEqual(testWidget.count, 1);
 		},
-		'widget function properties can do not get re-bound when nested'() {
+		'widget function properties do not get re-bound when nested'() {
 			const createChildWidget = createWidgetBase.mixin({
 				mixin: {
 					getChildrenNodes(this: any): DNode[] {
@@ -316,6 +316,42 @@ registerSuite({
 			testWidget.invalidate();
 			testWidget.__render__();
 			assert.strictEqual(testWidget.count, 2);
+		},
+		'widget function properties can be un-bound'() {
+			const createChildWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						this.properties.foo();
+						return [];
+					}
+				}
+			});
+
+			const createTestWidget = createWidgetBase.mixin({
+				mixin: {
+					count: 0,
+					foo(this: any) {
+						this.count++;
+					},
+					getChildrenNodes(this: any): DNode[] {
+						return [
+							w(createChildWidget, {
+								foo: this.foo,
+								bar: Math.random(),
+								bind: undefined
+							})
+						];
+					}
+				}
+			});
+
+			const testWidget = createTestWidget();
+			try {
+				testWidget.__render__();
+			} catch (e) {
+				assert.strictEqual(e.message, `Cannot read property 'count' of undefined`);
+				assert.strictEqual(testWidget.count, 0);
+			}
 		}
 	},
 	getChildrenNodes: {
