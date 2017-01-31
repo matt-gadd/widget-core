@@ -44,8 +44,7 @@ const widgetInternalStateMap = new WeakMap<Widget<WidgetProperties>, WidgetInter
 
 const propertyFunctionNameRegex = /^diffProperty(.*)/;
 
-const bindSymbol = Symbol('bind');
-const scopeSymbol = Symbol('scope');
+const bindFunctionPropertyMap = new WeakMap<() => {}, { boundFunc: any, scope: any }>();
 
 function getFromRegistry(instance: Widget<WidgetProperties>, factoryLabel: string): FactoryRegistryItem | null {
 	if (instance.registry && instance.registry.has(factoryLabel)) {
@@ -159,17 +158,20 @@ function formatTagNameAndClasses(tagName: string, classes: string[]) {
 	return tagName;
 }
 
-function bindFunctionProperties(properties: WidgetProperties) {
+function bindFunctionProperties(instance: Widget<WidgetProperties>, properties: WidgetProperties) {
 	Object.keys(properties).forEach((propertyKey) => {
 		const func = properties[propertyKey];
 		const bind = properties.bind;
 
 		if (typeof func === 'function') {
-			if (!func[bindSymbol] || func[scopeSymbol] !== bind) {
-				func[bindSymbol] = func.bind(bind);
-				func[scopeSymbol] = bind;
+			const bindInfo = bindFunctionPropertyMap.get(func) || {};
+			let { boundFunc, scope } = bindInfo;
+
+			if (!boundFunc || scope !== bind) {
+				boundFunc = func.bind(bind);
+				bindFunctionPropertyMap.set(func, { boundFunc, scope: bind });
 			}
-			properties[propertyKey] = func[bindSymbol];
+			properties[propertyKey] = boundFunc;
 		}
 	});
 }
@@ -245,7 +247,7 @@ const createWidget: WidgetBaseFactory = createEvented
 				const diffPropertyResults: { [index: string]: PropertyChangeRecord } = {};
 				const diffPropertyChangedKeys: string[] = [];
 
-				bindFunctionProperties(properties);
+				bindFunctionProperties(this, properties);
 
 				internalState.diffPropertyFunctionMap.forEach((property: string, diffFunctionName: string) => {
 					const previousProperty = internalState.previousProperties[property];
