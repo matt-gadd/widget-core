@@ -166,10 +166,89 @@ registerSuite({
 				mixin: {
 					count: 0,
 					foo(this: any) {
-						this && this.count++;
+						this.count++;
 					},
 					getChildrenNodes(this: any): DNode[] {
-						const bind = this.count < 3 ? this : undefined;
+						return [
+							w(createChildWidget, {
+								foo: this.foo,
+								bar: Math.random()
+							})
+						];
+					}
+				}
+			});
+
+			const testWidget = createTestWidget();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 1);
+			testWidget.invalidate();
+			testWidget.__render__();
+			assert.strictEqual(testWidget.count, 2);
+		},
+		'widget function properties can be bound to a custom scope'() {
+			const createChildWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						this.properties.foo();
+						return [];
+					}
+				}
+			});
+
+			const foo = {
+				count: 0,
+				foo(this: any) {
+					this.count += 1;
+				}
+			};
+
+			const createTestWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						return [
+							w(createChildWidget, {
+								foo: foo.foo,
+								bar: Math.random(),
+								bind: foo
+							})
+						];
+					}
+				}
+			});
+
+			const testWidget = createTestWidget();
+			testWidget.__render__();
+			assert.strictEqual(foo.count, 1);
+			testWidget.invalidate();
+			testWidget.__render__();
+			assert.strictEqual(foo.count, 2);
+		},
+		'widget function properties can have different bound scopes'() {
+			const createChildWidget = createWidgetBase.mixin({
+				mixin: {
+					getChildrenNodes(this: any): DNode[] {
+						this.properties.foo();
+						return [];
+					}
+				}
+			});
+
+			const foo = {
+				count: 0,
+				foo(this: any) {
+					this.count += 1;
+				}
+			};
+
+			const createTestWidget = createWidgetBase.mixin({
+				mixin: {
+					count: 0,
+					foo(this: any) {
+						this.count++;
+					},
+					getChildrenNodes(this: any): DNode[] {
+						const bind = this.count ? foo : this;
 						return [
 							w(createChildWidget, {
 								foo: this.foo,
@@ -183,16 +262,12 @@ registerSuite({
 
 			const testWidget = createTestWidget();
 			testWidget.__render__();
+			assert.strictEqual(foo.count, 0);
 			assert.strictEqual(testWidget.count, 1);
 			testWidget.invalidate();
 			testWidget.__render__();
-			assert.strictEqual(testWidget.count, 2);
-			testWidget.invalidate();
-			testWidget.__render__();
-			assert.strictEqual(testWidget.count, 3);
-			testWidget.invalidate();
-			testWidget.__render__();
-			assert.strictEqual(testWidget.count, 3);
+			assert.strictEqual(foo.count, 1);
+			assert.strictEqual(testWidget.count, 1);
 		}
 	},
 	getChildrenNodes: {
