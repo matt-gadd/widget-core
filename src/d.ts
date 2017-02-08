@@ -91,7 +91,13 @@ export function v(tag: string, propertiesOrChildren: VNodeProperties = {}, child
 			children,
 			properties,
 			render<T>(this: { vNodes: VNode[], properties: VNodeProperties }, options: { bind?: T } = { }) {
-				return h(tag, assign(options, this.properties), this.vNodes);
+				let { classes } = this.properties;
+
+				if (classes && typeof classes === 'function') {
+					classes = classes();
+				}
+
+				return h(tag, assign(options, this.properties, { classes }), this.vNodes);
 			},
 			type: HNODE
 		};

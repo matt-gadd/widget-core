@@ -49,6 +49,10 @@ export interface ThemeableOptions {
  */
 export interface ClassesFunctionChain {
 	/**
+	 * Finalize function to return the generated class names
+	 */
+	(): ClassNameFlags;
+	/**
 	 * The classes to be returned when get() is called
 	 */
 	classes: ClassNameFlags;
@@ -199,7 +203,11 @@ const themeableFactory: ThemeableFactory = createEvented.mixin({
 			const responseClasses = assign({}, allClassNamesMap.get(this), appliedClasses);
 			const instance = this;
 
-			const classesResponseChain: ClassesFunctionChain = {
+			function classesGetter(this: ClassesFunctionChain) {
+				return this.classes;
+			}
+
+			const classesFunctionChain = {
 				classes: responseClasses,
 				fixed(this: ClassesFunctionChain, ...classes: string[]) {
 					const splitClasses = splitClassStrings(classes);
@@ -207,12 +215,10 @@ const themeableFactory: ThemeableFactory = createEvented.mixin({
 					appendToAllClassNames(instance, splitClasses);
 					return this;
 				},
-				get(this: ClassesFunctionChain) {
-					return this.classes;
-				}
+				get: classesGetter
 			};
 
-			return classesResponseChain;
+			return assign(classesGetter.bind(classesFunctionChain), classesFunctionChain);
 		}
 	},
 	initialize(instance: Themeable) {
