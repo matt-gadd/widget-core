@@ -72,13 +72,13 @@ registerSuite({
 
 			__render__() {
 				const results: any = super.__render__();
-				results.properties = {};
+				results.properties = undefined;
 				return results;
 			}
 		}({});
 
 		const vnode  = <any> projector.__render__();
-		assert.deepEqual({}, vnode.properties);
+		assert.isUndefined(vnode.properties);
 	},
 	'attach to projector': {
 		'append'() {

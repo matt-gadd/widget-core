@@ -130,6 +130,16 @@ registerSuite({
 			});
 
 			assert.isFalse(consoleStub.called);
+		},
+		'support invoking the result as a shortcut over .get'() {
+			themeableInstance = new Test({});
+			const { class1, class2 } = baseClasses;
+			const flaggedClasses = themeableInstance.classes(class1, class2)();
+			assert.deepEqual(flaggedClasses, {
+				[ baseClasses.class1 ]: true,
+				[ baseClasses.class2 ]: true
+			});
+
 		}
 	},
 	'classes.fixed chained function': {
@@ -213,6 +223,16 @@ registerSuite({
 				'adjoinedClassName1': false,
 				'adjoinedClassName2': false
 			}, `adjoiend class names should be false on second call`);
+		},
+		'support invoking the result as a shortcut over .get'() {
+			themeableInstance = new Test({});
+			const fixedClassName = 'fixedClassName';
+			const flaggedClasses = themeableInstance.classes().fixed(fixedClassName)();
+			assert.deepEqual(flaggedClasses, {
+				[ baseClasses.class1 ]: false,
+				[ baseClasses.class2 ]: false,
+				[ fixedClassName ]: true
+			});
 		}
 	},
 	'setting a theme': {
@@ -304,12 +324,7 @@ registerSuite({
 				render() {
 					const { class1 } = baseClasses;
 					return v('div', [
-						v('div', { classes: this.classes(class1).fixed(fixedClassName).get() }),
-						v('div', { classes: { a: true } }),
-						v('div', { classes: this.classes(class1).fixed(fixedClassName) }),
-						v('div', { classes: () => {
-							return { 'foo': true };
-						} })
+						v('div', { classes: this.classes(class1).fixed(fixedClassName).get() })
 					]);
 				}
 			}

@@ -105,6 +105,12 @@ registerSuite({
 			assert.equal(hNode.type, HNODE);
 			assert.isTrue(isHNode(hNode));
 			assert.isFalse(isWNode(hNode));
+		},
+		'create HNode wrapper, where classes can be a function'() {
+			const hNode = v('div', { classes: () => {
+				return { foo: true };
+			}});
+			assert.deepEqual({ classes: { foo: true }}, hNode.render().properties);
 		}
 	},
 	decorator: {

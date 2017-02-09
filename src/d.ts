@@ -107,7 +107,7 @@ export function v(tag: string, propertiesOrChildren: VNodeProperties = {}, child
 			render<T>(this: { vNodes: MaquetteVNode[], properties: VNodeProperties }, options: { bind?: T } = { }) {
 				const { classes } = this.properties;
 				if (typeof classes === 'function') {
-					this.properties = assign(this.properties, classes());
+					this.properties = assign(this.properties, { classes: classes() });
 				}
 				return h(tag, assign(options, this.properties), this.vNodes);
 			},
