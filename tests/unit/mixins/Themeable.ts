@@ -139,7 +139,6 @@ registerSuite({
 				[ baseClasses.class1 ]: true,
 				[ baseClasses.class2 ]: true
 			});
-
 		}
 	},
 	'classes.fixed chained function': {
