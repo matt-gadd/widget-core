@@ -38,6 +38,7 @@ export interface ThemeableProperties extends WidgetProperties {
  * Returned by classes function.
  */
 export interface ClassesFunctionChain {
+	(): ClassNameFlags;
 	/**
 	 * The classes to be returned when get() is called
 	 */
@@ -141,7 +142,11 @@ export function ThemeableMixin<T extends WidgetConstructor>(base: T): Constructo
 			const responseClasses = assign({}, this.allClasses, appliedClasses);
 			const themeable = this;
 
-			const classesResponseChain: ClassesFunctionChain = {
+			function classesGetter(this: ClassesFunctionChain) {
+				return this.classes;
+			}
+
+			const classesFunctionChain = {
 				classes: responseClasses,
 				fixed(this: ClassesFunctionChain, ...classNames: (string | null)[]) {
 					const filteredClassNames = <string[]> classNames.filter((className) => className !== null);
@@ -150,12 +155,10 @@ export function ThemeableMixin<T extends WidgetConstructor>(base: T): Constructo
 					themeable.appendToAllClassNames(splitClasses);
 					return this;
 				},
-				get(this: ClassesFunctionChain) {
-					return this.classes;
-				}
+				get: classesGetter
 			};
 
-			return classesResponseChain;
+			return assign(classesGetter.bind(classesFunctionChain), classesFunctionChain);
 		}
 
 		/**

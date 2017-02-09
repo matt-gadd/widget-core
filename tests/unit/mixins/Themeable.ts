@@ -301,11 +301,15 @@ registerSuite({
 					options.baseClasses = baseClasses;
 					super(options);
 				}
-
 				render() {
 					const { class1 } = baseClasses;
 					return v('div', [
-						v('div', { classes: this.classes(class1).fixed(fixedClassName).get() })
+						v('div', { classes: this.classes(class1).fixed(fixedClassName).get() }),
+						v('div', { classes: { a: true } }),
+						v('div', { classes: this.classes(class1).fixed(fixedClassName) }),
+						v('div', { classes: () => {
+							return { 'foo': true };
+						} })
 					]);
 				}
 			}
