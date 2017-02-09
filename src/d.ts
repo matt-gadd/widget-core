@@ -1,7 +1,7 @@
 import { assign } from '@dojo/core/lang';
-import { VNodeProperties } from '@dojo/interfaces/vdom';
 import Symbol from '@dojo/shim/Symbol';
 import { h, VNode } from 'maquette';
+import { HNodeProperties} from './interfaces';
 import {
 	DNode,
 	HNode,
@@ -89,10 +89,10 @@ export function w<P extends WidgetProperties>(factory: WidgetBaseConstructor<P> 
 /**
  * Wrapper function for calls to create hyperscript, lazily executes the hyperscript creation
  */
-export function v(tag: string, properties: VNodeProperties, children?: DNode[]): HNode;
+export function v(tag: string, properties: HNodeProperties, children?: DNode[]): HNode;
 export function v(tag: string, children: DNode[]): HNode;
 export function v(tag: string): HNode;
-export function v(tag: string, propertiesOrChildren: VNodeProperties = {}, children: DNode[] = []): HNode {
+export function v(tag: string, propertiesOrChildren: HNodeProperties = {}, children: DNode[] = []): HNode {
 		let properties = propertiesOrChildren;
 
 		if (Array.isArray(propertiesOrChildren)) {
@@ -103,7 +103,7 @@ export function v(tag: string, propertiesOrChildren: VNodeProperties = {}, child
 		return {
 			children,
 			properties,
-			render<T>(this: { vNodes: VNode[], properties: VNodeProperties }, options: { bind?: T } = { }) {
+			render<T>(this: { vNodes: VNode[], properties: HNodeProperties }, options: { bind?: T } = { }) {
 				let { classes } = this.properties;
 				if (typeof classes === 'function') {
 					classes = classes();

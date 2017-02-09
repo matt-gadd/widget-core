@@ -1,4 +1,4 @@
-import { VNode, VNodeProperties } from '@dojo/interfaces/vdom';
+import { VNode } from '@dojo/interfaces/vdom';
 import { assign } from '@dojo/core/lang';
 import WeakMap from '@dojo/shim/WeakMap';
 import Promise from '@dojo/shim/Promise';
@@ -7,6 +7,7 @@ import Set from '@dojo/shim/Set';
 import { EventTypedObject } from '@dojo/interfaces/core';
 import { Evented } from './bases/Evented';
 import { v, registry, isWNode } from './d';
+import { HNodeProperties } from './interfaces';
 import FactoryRegistry from './FactoryRegistry';
 
 /**
@@ -52,7 +53,7 @@ export interface HNode {
 	/**
 	 * The properties used to create the VNode
 	 */
-	properties: VNodeProperties;
+	properties: HNodeProperties;
 
 	/**
 	 * The type of node
