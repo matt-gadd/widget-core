@@ -101,7 +101,6 @@ export function v(tag: string, propertiesOrChildren: VNodeProperties = {}, child
 		}
 
 		return {
-			vNodes: [],
 			children,
 			properties,
 			render<T>(this: { vNodes: MaquetteVNode[], properties: VNodeProperties }, options: { bind?: T } = { }) {
