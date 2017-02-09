@@ -1,6 +1,5 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
-import { VNode } from '@dojo/interfaces/vdom';
 import { v, w } from './../../../src/d';
 import { WidgetBase } from '../../../src/WidgetBase';
 import { FormLabelMixin, FormLabelMixinProperties } from '../../../src/mixins/FormLabel';
@@ -22,7 +21,7 @@ registerSuite({
 				randomProp: 'qux'
 			});
 
-			let vnode = <VNode> formField.__render__();
+			let vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'div');
 			assert.strictEqual(vnode.properties!['value'], 'foo');
@@ -33,7 +32,7 @@ registerSuite({
 				value: 'bar',
 				name: 'baz'
 			});
-			vnode = <VNode> formField.__render__();
+			vnode = formField.__render__();
 
 			assert.strictEqual(vnode.properties!['value'], 'bar');
 			assert.strictEqual(vnode.properties!['name'], 'baz');
@@ -44,7 +43,7 @@ registerSuite({
 				disabled: true,
 				describedBy: 'qux'
 			});
-			vnode = <VNode> formField.__render__();
+			vnode = formField.__render__();
 
 			assert.isTrue(vnode.properties!['aria-readonly']);
 			assert.strictEqual(vnode.properties!['readonly'], 'readonly');
@@ -65,7 +64,7 @@ registerSuite({
 				randomProp: 'qux'
 			});
 
-			let vnode = <VNode> formField.__render__();
+			let vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'div');
 			assert.isUndefined(vnode.properties!['value']);
@@ -84,7 +83,7 @@ registerSuite({
 				maxLength: 100,
 				formId: 'baz'
 			});
-			let vnode = <VNode> formField.__render__();
+			let vnode = formField.__render__();
 
 			assert.strictEqual(vnode.children![0].properties!['value'], 'bar');
 			assert.strictEqual(vnode.children![0].properties!['maxlength'], '100');
@@ -96,7 +95,7 @@ registerSuite({
 		const formField: any = new FormLabelWidget({});
 		formField.type = 'foo';
 
-		const vnode = <VNode> formField.__render__();
+		const vnode = formField.__render__();
 
 		assert.strictEqual(vnode.properties!['type'], 'foo');
 	},
@@ -105,7 +104,7 @@ registerSuite({
 			const formField: any = new FormLabelWidget({
 				label: 'bar'
 			});
-			const vnode = <VNode> formField.__render__();
+			const vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'label');
 			assert.lengthOf(vnode.children, 2);
@@ -119,7 +118,7 @@ registerSuite({
 					hidden: true
 				}
 			});
-			let vnode = <VNode> formField.__render__();
+			let vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'label');
 			assert.lengthOf(vnode.children, 2);
@@ -131,21 +130,21 @@ registerSuite({
 					content: ''
 				}
 			});
-			vnode = <VNode> formField.__render__();
+			vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'label');
 			assert.lengthOf(vnode.children, 1);
 		},
 		'no label'() {
 			const formField: any = new FormLabelWidget({});
-			const vnode = <VNode> formField.__render__();
+			const vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'div');
 			assert.lengthOf(vnode.children, 0);
 		},
 		'changing label'() {
 			const formField: any = new FormLabelWidget({});
-			let vnode = <VNode> formField.__render__();
+			let vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'div');
 			assert.lengthOf(vnode.children, 0);
@@ -153,7 +152,7 @@ registerSuite({
 			formField.setProperties({
 				label: 'bar'
 			});
-			vnode = <VNode> formField.__render__();
+			vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'label');
 			assert.lengthOf(vnode.children, 2);
@@ -161,7 +160,7 @@ registerSuite({
 			formField.setProperties({
 				label: null
 			});
-			vnode = <VNode> formField.__render__();
+			vnode = formField.__render__();
 
 			assert.strictEqual(vnode.vnodeSelector, 'div');
 			assert.lengthOf(vnode.children, 0);

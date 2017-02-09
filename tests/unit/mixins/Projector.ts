@@ -67,18 +67,18 @@ registerSuite({
 	'render does not attach after create when there are no properties'() {
 		const projector = new class extends TestWidget {
 			render() {
-				return v('div', <any> null);
+				return v('div', {});
 			}
 
 			__render__() {
 				const results: any = super.__render__();
-				results.properties = undefined;
+				results.properties = {};
 				return results;
 			}
 		}({});
 
 		const vnode  = <any> projector.__render__();
-		assert.isUndefined(vnode.properties);
+		assert.deepEqual({}, vnode.properties);
 	},
 	'attach to projector': {
 		'append'() {

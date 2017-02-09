@@ -1,5 +1,5 @@
 import { assign } from '@dojo/core/lang';
-import { VNode, VNodeProperties } from '@dojo/interfaces/vdom';
+import { VNodeProperties } from '@dojo/interfaces/vdom';
 import Symbol from '@dojo/shim/Symbol';
 import { h, VNode as MaquetteVNode } from 'maquette';
 import {
@@ -105,11 +105,11 @@ export function v(tag: string, propertiesOrChildren: VNodeProperties = {}, child
 			children,
 			properties,
 			render<T>(this: { vNodes: MaquetteVNode[], properties: VNodeProperties }, options: { bind?: T } = { }) {
-				let { classes } = this.properties;
+				const { classes } = this.properties;
 				if (typeof classes === 'function') {
-					classes = classes();
+					this.properties = assign(this.properties, classes());
 				}
-				return h(tag, assign(options, this.properties, { classes }), this.vNodes);
+				return h(tag, assign(options, this.properties), this.vNodes);
 			},
 			type: HNODE
 		};
