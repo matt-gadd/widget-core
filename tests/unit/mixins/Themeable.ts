@@ -3,8 +3,9 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { ThemeableMixin, theme, ThemeableProperties } from '../../../src/mixins/Themeable';
 import { WidgetBase } from '../../../src/WidgetBase';
-import { v } from '../../../src/d';
+import { w, v } from '../../../src/d';
 import { stub, SinonStub } from 'sinon';
+import { ProjectorMixin, ProjectorProperties } from '../../../src/mixins/Projector';
 
 const baseClasses = {
 	[' _key']: 'testPath',
@@ -312,6 +313,61 @@ registerSuite({
 		}
 	},
 	'integration': {
+		beforeEach() {
+			return new Promise((resolve) => {
+				const w: any = window;
+				const def = w.define;
+				w.define = undefined;
+				const d = document;
+				const script = d.createElement('script');
+				script.type = 'text/javascript';
+				script.async = true;
+				script.onload = function(){
+					resolve();
+					w.define = def;
+				};
+				script.src = 'https://code.jquery.com/pep/0.4.1/pep.js';
+				d.getElementsByTagName('head')[0].appendChild(script);
+			});
+		},
+		'foo'() {
+			class TestWidget extends Test {
+				private pointer: any;
+				constructor(options: any) {
+					super(options);
+					this.pointer = this.pointerEnter;
+					setTimeout(() => {
+						console.log('changing pointer func');
+						this.pointer = null;
+						this.invalidate();
+					}, 5000);
+				}
+				pointerEnter(evt: PointerEvent) {
+					console.log(evt.x, evt.y);
+				}
+				render() {
+					return v('div.foo', [
+						v('div.bar', {
+							innerHTML: Math.random().toString(),
+							style: 'background: red;',
+							pointerenter: this.pointer
+						})
+					]);
+				}
+			}
+			class TestProjector extends ProjectorMixin(WidgetBase)<ProjectorProperties> {
+				render() {
+					return w(TestWidget, { foo: Math.random() });
+				}
+			}
+			const projector = new TestProjector({});
+			projector.append().then(() => {
+				projector.invalidate();
+				projector.render();
+			});
+			return new Promise((resolve) => {
+			});
+		},
 		'should work as mixin to createWidgetBase'() {
 			const fixedClassName = 'fixedClassName';
 

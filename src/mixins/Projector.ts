@@ -1,7 +1,7 @@
 import global from '@dojo/core/global';
 import Promise from '@dojo/shim/Promise';
-import { createProjector as createMaquetteProjector, Projector as MaquetteProjector } from 'maquette';
-import { EventTargettedObject, Handle } from '@dojo/interfaces/core';
+import { dom, Projection } from 'maquette';
+import { Handle } from '@dojo/interfaces/core';
 import { WidgetConstructor, WidgetProperties } from './../WidgetBase';
 import { Constructor } from './../interfaces';
 
@@ -51,9 +51,14 @@ export interface Projector {
 	merge(): Promise<Handle>;
 
 	/**
-	 * Replace the root with the projector node.
+	 * Pause the projector.
 	 */
-	replace(): Promise<Handle>;
+	pause(): void;
+
+	/**
+	 * Resume the projector and schedule a re-render.
+	 */
+	resume(): void;
 
 	/**
 	 * Root element to attach the projector
@@ -66,27 +71,52 @@ export interface Projector {
 	readonly projectorState: ProjectorState;
 }
 
+export interface VNodeEvent {
+	eventName: string;
+	eventHandler: Function;
+	properties: any;
+}
+
 export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constructor<Projector> {
 	return class extends base {
 
 		public properties: ProjectorProperties;
 		public projectorState: ProjectorState;
-		private readonly projector: MaquetteProjector;
 
 		private _root: Element;
 		private attachPromise: Promise<Handle>;
 		private attachHandle: Handle;
 		private afterCreate: () => void;
 
+		private paused: boolean;
+		private scheduled: number | undefined;
+		private renderCompleted: boolean;
+
+		private projections: Projection[];
+		private projectionOptions: { transitions?: any, eventHandlerInterceptor: any };
+		private renderFunctions: Function[];
+		private events: WeakMap<Node, Map<string, VNodeEvent>>;
+		private rootEventNames: string[];
+		private boundHandler: EventListener;
+		private boundRender: FrameRequestCallback;
+
 		constructor(...args: any[]) {
 			super(...args);
 			const [ properties ] = args;
 			const { root = document.body, cssTransitions = false }  = properties;
-			const maquetteProjectorOptions: { transitions?: any } = {};
+
+			this.events = new WeakMap<Node, Map<string, VNodeEvent>>();
+			this.rootEventNames = [];
+			this.renderFunctions = [];
+			this.projections = [];
+			this.renderCompleted = true;
+			this.projectionOptions = { eventHandlerInterceptor: this.eventHandlerInterceptor.bind(this) };
+			this.boundRender = this.doRender.bind(this);
+			this.boundHandler = this.handler.bind(this);
 
 			if (cssTransitions) {
 				if (global.cssTransitions) {
-					maquetteProjectorOptions.transitions = global.cssTransitions;
+					this.projectionOptions.transitions = global.cssTransitions;
 				}
 				else {
 					throw new Error('Unable to create projector with css transitions enabled. Is the \'css-transition.js\' script loaded in the page?');
@@ -96,16 +126,60 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 			this.own(this.on('widget:children', this.invalidate));
 			this.own(this.on('invalidated', this.scheduleRender));
 
-			this.projector = createMaquetteProjector(maquetteProjectorOptions);
 			this.root = root;
 			this.projectorState = ProjectorState.Detached;
+		}
+
+		private eventHandlerInterceptor(propertyName: string, eventHandler: Function, domNode: Node, properties: any) {
+			const eventName = propertyName.substr(2);
+
+			if (this.rootEventNames.indexOf(eventName) < 0) {
+				this.root.addEventListener(eventName, this.boundHandler);
+				this.rootEventNames.push(eventName);
+			}
+
+			let map = this.events.get(domNode);
+			if (!map) {
+				map = new Map<string, VNodeEvent>();
+			}
+			map.set(eventName, { eventName, eventHandler, properties });
+			this.events.set(domNode, map);
+		}
+
+		private handler(evt: any) {
+			let node;
+			let handle;
+			let eventMatches = false;
+			let eventFired = false;
+
+			while (node !== this.root) {
+				node = node ? node.parentNode : evt.target;
+				handle = this.events.get(node);
+				eventMatches = handle && handle.get(evt.type) !== undefined;
+
+				if (eventMatches) {
+					const { properties, eventHandler } = handle.get(evt.type);
+					let stopPropagation;
+					evt.stopPropagation = () => {
+						stopPropagation = true;
+					};
+					const eventResult = eventHandler.apply(properties.bind || properties, [ evt ]);
+					eventFired = true;
+					if (eventResult === false || stopPropagation === true) {
+						break;
+					}
+				}
+			}
+
+			if (eventFired) {
+				this.scheduleRender();
+			}
 		}
 
 		append() {
 			const options = {
 				type: AttachType.Append
 			};
-
 			return this.attach(options);
 		}
 
@@ -113,16 +187,21 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 			const options = {
 				type: AttachType.Merge
 			};
-
 			return this.attach(options);
 		}
 
-		replace() {
-			const options = {
-				type: AttachType.Replace
-			};
+		pause() {
+			if (this.scheduled) {
+				cancelAnimationFrame(this.scheduled);
+				this.scheduled = undefined;
+			}
+			this.paused = true;
+		}
 
-			return this.attach(options);
+		resume() {
+			this.paused = false;
+			this.renderCompleted = true;
+			this.scheduleRender();
 		}
 
 		set root(root: Element) {
@@ -149,14 +228,33 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 			return result;
 		}
 
-		private scheduleRender(event: EventTargettedObject<this>) {
-			const { target: projector } = event;
+		private doRender() {
+			this.scheduled = undefined;
+
+			if (!this.renderCompleted) {
+				return;
+			}
+
+			this.renderCompleted = false;
+
+			for (let i = 0; i < this.projections.length; i++) {
+				let updatedVnode = this.renderFunctions[i]();
+				this.projections[i].update(updatedVnode);
+			}
+
+			this.renderCompleted = true;
+		}
+
+		private scheduleRender() {
 			if (this.projectorState === ProjectorState.Attached) {
-				projector.emit({
+				this.emit({
 					type: 'render:scheduled',
-					target: projector
+					target: this
 				});
-				this.projector.scheduleRender();
+
+				if (!this.scheduled && !this.paused) {
+					this.scheduled = requestAnimationFrame(this.boundRender);
+				}
 			}
 		}
 
@@ -166,13 +264,15 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 			if (this.projectorState === ProjectorState.Attached) {
 				return this.attachPromise || Promise.resolve({});
 			}
+
 			this.projectorState = ProjectorState.Attached;
 
 			this.attachHandle = this.own({
 				destroy: () => {
 					if (this.projectorState === ProjectorState.Attached) {
-						this.projector.stop();
-						this.projector.detach(render);
+						this.pause();
+						this.detach(render);
+						this.removeEventListeners();
 						this.projectorState = ProjectorState.Detached;
 					}
 					this.attachHandle = { destroy() { } };
@@ -191,17 +291,34 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 
 			switch (type) {
 				case AttachType.Append:
-					this.projector.append(this.root, render);
+					this.projections.push(dom.append(this.root, render(), this.projectionOptions));
+					this.renderFunctions.push(render);
 				break;
 				case AttachType.Merge:
-					this.projector.merge(this.root, render);
-				break;
-				case AttachType.Replace:
-					this.projector.replace(this.root, render);
+					this.projections.push(dom.merge(this.root, render(), this.projectionOptions));
+					this.renderFunctions.push(render);
 				break;
 			}
 
 			return this.attachPromise;
+		}
+
+		private removeEventListeners() {
+			this.rootEventNames.forEach((eventName) => {
+				this.root.removeEventListener(eventName, this.boundHandler);
+			});
+			this.rootEventNames = [];
+		}
+
+		private detach(render: any) {
+			for (let i = 0; i < this.renderFunctions.length; i++) {
+
+				if (this.renderFunctions[i] === render) {
+					this.renderFunctions.splice(i, 1);
+					return this.projections.splice(i, 1)[0];
+				}
+
+			}
 		}
 	};
 }

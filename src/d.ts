@@ -86,6 +86,17 @@ export function w<P extends WidgetProperties>(factory: WidgetBaseConstructor<P> 
 	};
 }
 
+const pointerEvents = [
+	'pointermove',
+	'pointerdown',
+	'pointerup',
+	'pointerover',
+	'pointerout',
+	'pointerenter',
+	'pointerleave',
+	'pointercancel'
+];
+
 /**
  * Wrapper function for calls to create hyperscript, lazily executes the hyperscript creation
  */
@@ -108,6 +119,7 @@ export function v(tag: string, propertiesOrChildren: HNodeProperties = {}, child
 				if (typeof classes === 'function') {
 					classes = classes();
 				}
+
 				return h(tag, assign(options, this.properties, classes ? { classes } : {}), this.vNodes);
 			},
 			type: HNODE

@@ -125,6 +125,17 @@ export interface HNodeProperties {
 	 */
 	readonly styles?: { [index: string]: string | null | undefined };
 
+	// Pointer Events
+	pointermove?(ev?: PointerEvent): boolean | void;
+	pointerdown?(ev?: PointerEvent): boolean | void;
+	pointerup?(ev?: PointerEvent): boolean | void;
+	pointerover?(ev?: PointerEvent): boolean | void;
+	pointerout?(ev?: PointerEvent): boolean | void;
+	pointerenter?(ev?: PointerEvent): boolean | void;
+	pointerleave?(ev?: PointerEvent): boolean | void;
+	pointercancel?(ev?: PointerEvent): boolean | void;
+	// For Pointer Event Polyfill
+	readonly touchaction?: string;
 	// From Element
 	ontouchcancel?(ev?: TouchEvent): boolean | void;
 	ontouchend?(ev?: TouchEvent): boolean | void;

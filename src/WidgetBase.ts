@@ -6,7 +6,7 @@ import Map from '@dojo/shim/Map';
 import Set from '@dojo/shim/Set';
 import { EventTypedObject } from '@dojo/interfaces/core';
 import { Evented } from './bases/Evented';
-import { v, registry, isWNode } from './d';
+import { v, registry, isWNode, isHNode } from './d';
 import { HNodeProperties } from './interfaces';
 import FactoryRegistry from './FactoryRegistry';
 
@@ -184,6 +184,10 @@ export class WidgetBase<P extends WidgetProperties> extends Evented {
 	 */
 	private initializedFactoryMap: Map<string, Promise<WidgetConstructor>>;
 
+	private vNodeMap: WeakMap<any, any>;
+
+	private keyedVNodeMap: Map<string, any>;
+
 	/**
 	 * cached chldren map for instance management
 	 */
@@ -220,6 +224,8 @@ export class WidgetBase<P extends WidgetProperties> extends Evented {
 		this._properties = <P> {};
 		this.previousProperties = <P> {};
 		this.initializedFactoryMap = new Map<string, Promise<WidgetConstructor>>();
+		this.vNodeMap = new WeakMap<any, any>();
+		this.keyedVNodeMap = new Map<string, any>();
 		this.cachedChildrenMap = new Map<string | Promise<WidgetConstructor> | WidgetConstructor, WidgetCacheWrapper[]>();
 		this.diffPropertyFunctionMap = new Map<string, string>();
 		this.renderDecorators = new Set<string>();
@@ -357,7 +363,8 @@ export class WidgetBase<P extends WidgetProperties> extends Evented {
 	 * Main internal function for dealing with widget rendering
 	 */
 	public __render__(): VNode | string | null {
-		if (this.dirty || !this.cachedVNode) {
+		/*if (this.dirty || !this.cachedVNode) {*/
+		if (true) {
 			let dNode = this.render();
 			this.renderDecorators.forEach((decoratorFunctionName: string) => {
 				const self: { [index: string]: any } = this;
@@ -421,6 +428,45 @@ export class WidgetBase<P extends WidgetProperties> extends Evented {
 		return registry.get(factoryLabel);
 	}
 
+	/*private fooUpdate(element: Element, projectionOptions: any, vnodeSelector: string, properties: any, children: VNode[]) {
+		const allowedEvents = [
+			'pointermove',
+			'pointerdown',
+			'pointerup',
+			'pointerover',
+			'pointerout',
+			'pointerenter',
+			'pointerleave',
+			'pointercancel',
+			'transitionend'
+		];
+
+		let eventMap = this.vNodeMap.get(element);
+		if (!eventMap) {
+			eventMap = new Map<string, any>();
+		}
+
+		Object.keys(properties)
+		.filter((property) => allowedEvents.indexOf(property) > -1)
+		.forEach((property) => {
+			const callback = properties[property];
+			const eventItem = eventMap.get(property);
+			if (!eventItem) {
+				element.addEventListener(property, properties[property]);
+				eventMap.set(property, callback);
+			}
+			else if (eventItem !== callback) {
+				element.removeEventListener(property, eventItem);
+				if (callback) {
+					element.addEventListener(property, properties[property]);
+				}
+				eventMap.set(property, callback);
+			}
+		});
+
+		this.vNodeMap.set(element, eventMap);
+	}*/
+
 	/**
 	 * Process a structure of DNodes into VNodes, string or null. `null` results are filtered.
 	 *
@@ -431,6 +477,11 @@ export class WidgetBase<P extends WidgetProperties> extends Evented {
 
 		if (typeof dNode === 'string' || dNode === null) {
 			return dNode;
+		}
+
+		if (isHNode(dNode)) {
+			/*dNode.properties.afterCreate = this.fooUpdate;
+			dNode.properties.afterUpdate = this.fooUpdate;*/
 		}
 
 		if (isWNode(dNode)) {

@@ -21,7 +21,7 @@ registerSuite({
 		}
 
 	},
-	'construting projector configured for css transitions throws when css-transitions script is not loaded.'() {
+	'constructing projector configured for css transitions throws when css-transitions script is not loaded.'() {
 		global.cssTransitions = undefined;
 		try {
 			new TestWidget({ cssTransitions: true });
@@ -95,22 +95,6 @@ registerSuite({
 				assert.strictEqual(( <HTMLElement> child.firstChild).tagName.toLowerCase(), 'h2');
 			});
 		},
-		'replace'() {
-			const projector = new class extends TestWidget {
-				render() {
-					return v('body', this.children);
-				}
-			}({});
-
-			projector.setChildren([ v('h2', [ 'foo' ] ) ]);
-
-			return projector.replace().then((attachHandle) => {
-				assert.strictEqual(document.body.childNodes.length, 1, 'child should have been added');
-				const child = <HTMLElement> document.body.lastChild;
-				assert.strictEqual(child.innerHTML, 'foo');
-				assert.strictEqual(child.tagName.toLowerCase(), 'h2');
-			});
-		},
 		'merge'() {
 			const childNodeLength = document.body.childNodes.length;
 			const projector = new TestWidget({});
@@ -164,8 +148,8 @@ registerSuite({
 	},
 	'destroy'() {
 		const projector: any = new TestWidget({});
-		const maquetteProjectorStopSpy = spy(projector.projector, 'stop');
-		const maquetteProjectorDetachSpy = spy(projector.projector, 'detach');
+		const maquetteProjectorStopSpy = spy(projector, 'pause');
+		const maquetteProjectorDetachSpy = spy(projector, 'detach');
 
 		return projector.append().then(() => {
 			projector.destroy();
@@ -194,7 +178,6 @@ registerSuite({
 	},
 	'invalidate before attached'() {
 		const projector: any = new TestWidget({});
-		const maquetteProjectorSpy = spy(projector.projector, 'scheduleRender');
 		let called = false;
 
 		projector.on('render:scheduled', () => {
@@ -202,13 +185,10 @@ registerSuite({
 		});
 
 		projector.invalidate();
-
-		assert.isFalse(maquetteProjectorSpy.called);
 		assert.isFalse(called);
 	},
 	'invalidate after attached'() {
 		const projector: any = new TestWidget({});
-		const maquetteProjectorSpy = spy(projector.projector, 'scheduleRender');
 		let called = false;
 
 		projector.on('render:scheduled', () => {
@@ -217,7 +197,6 @@ registerSuite({
 
 		return projector.append().then(() => {
 			projector.invalidate();
-			assert.isTrue(maquetteProjectorSpy.called);
 			assert.isTrue(called);
 		});
 	},
@@ -236,5 +215,74 @@ registerSuite({
 				projector.root = document.body;
 			}, Error, 'already attached');
 		});
+	},
+	foo: {
+		beforeEach() {
+			return new Promise((resolve) => {
+				const w: any = window;
+				const def = w.define;
+				w.define = undefined;
+				const d = document;
+				const script = d.createElement('script');
+				script.type = 'text/javascript';
+				script.async = true;
+				script.onload = function(){
+					resolve();
+					w.define = def;
+				};
+				script.src = 'https://code.jquery.com/pep/0.4.1/pep.js';
+				d.getElementsByTagName('head')[0].appendChild(script);
+			});
+		},
+		'boo'() {
+			const projector = new class extends TestWidget {
+				onRoot() {
+					console.log('event fired for root');
+				}
+				onNested() {
+					console.log('event fired for nested');
+				}
+				onNestedReturn() {
+					console.log('event fired nested return false');
+					return false;
+				}
+				onNestedStopPropagation(e: any) {
+					console.log('event fired nested prevent propagation');
+					e.stopPropagation();
+				}
+				onMouseOver() {
+					console.log('on mouse over');
+					return false;
+				}
+				render() {
+					const children = [
+						v('div', {
+							onclick: this.onNested,
+							onmouseover: this.onMouseOver,
+							style: 'width: 100px; height: 100px; background: red;',
+							innerHTML: 'child'
+						}),
+						v('div', {
+							onclick: this.onNestedReturn,
+							style: 'width: 100px; height: 100px; background: green;',
+							innerHTML: 'child: return false'
+						}),
+						v('div', {
+							onclick: this.onNestedStopPropagation,
+							style: 'width: 100px; height: 100px; background: orange;',
+							innerHTML: 'child: stop propagation'
+						})
+					];
+					return v('div', {
+						onclick: this.onRoot,
+						style: 'width: 300px; height: 300px; background: yellow;'
+					}, children);
+				}
+			}({});
+			return projector.append().then(() => {
+				return new Promise((resolve) => {
+				});
+			});
+		}
 	}
 });
