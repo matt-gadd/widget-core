@@ -252,6 +252,86 @@ registerSuite({
 			}, Error, 'already attached');
 		});
 	},
+	blah: {
+		beforeEach() {
+			const style: any = document.createElement('style');
+			style.appendChild(document.createTextNode(''));
+			document.head.appendChild(style);
+			style.sheet.addRule('.box:hover', 'width: 400px !important;', 0);
+		},
+		'foo'() {
+			const projector = new class extends TestWidget {
+				private transitionMessage: string;
+
+				constructor(...args: any[]) {
+					super({});
+					this.transitionMessage = 'animation';
+				}
+				onRoot() {
+					console.log('event fired for root');
+				}
+				onNested() {
+					console.log('event fired for nested');
+				}
+				onNestedStopPropagation(e: any) {
+					console.log('event fired nested prevent propagation');
+					e.stopPropagation();
+				}
+				onMouseOver() {
+					console.log('on mouse over');
+					return false;
+				}
+				onCheck(e: any) {
+					console.log('check');
+					e.preventDefault();
+				}
+				onNestedTransition(e: any) {
+					console.log('on transition end');
+					this.transitionMessage = 'ended transition';
+				}
+				onFocus(e: any) {
+					console.log('on focus');
+				}
+				render() {
+					const children = [
+						v('div', {
+							onclick: this.onNested,
+							onmouseover: this.onMouseOver,
+							style: 'width: 100px; height: 100px; background: red;',
+							innerHTML: 'child'
+						}),
+						v('div', {
+							onclick: this.onNestedStopPropagation,
+							style: 'width: 100px; height: 100px; background: orange;',
+							innerHTML: 'child: stop propagation'
+						}),
+						v('div', {
+							classes: { box: true },
+							style: 'width: 100px; height: 100px; background: red; transition: width 2s',
+							ontransitionend: this.onNestedTransition,
+							innerHTML: this.transitionMessage
+						}),
+						v('input', {
+							type: 'checkbox',
+							onclick: this.onCheck
+						}),
+						v('input', {
+							type: 'textbox',
+							onfocus: this.onFocus
+						})
+					];
+					return v('div', {
+						onclick: this.onRoot,
+						style: 'width: 400px; height: 400px; background: yellow;'
+					}, children);
+				}
+			}({});
+			return projector.append().then(() => {
+				return new Promise((resolve) => {
+				});
+			});
+		}
+	},
 	'event handler intercepter'() {
 			let count = 0;
 			const Projector = class extends TestWidget {

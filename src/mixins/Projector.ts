@@ -197,7 +197,6 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			if (!eventMap) {
 				eventMap = new Map<string, EventIntercepterItem>();
 			}
-
 			const eventItem = eventMap.get(eventName);
 
 			if (!eventItem) {
