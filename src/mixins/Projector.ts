@@ -1,6 +1,8 @@
 import { Handle } from '@dojo/interfaces/core';
 import Promise from '@dojo/shim/Promise';
-import { dom, Projection, ProjectionOptions } from 'maquette';
+import WeakMap from '@dojo/shim/WeakMap';
+import Map from '@dojo/shim/Map';
+import { dom, Projection, ProjectionOptions, VNodeProperties } from 'maquette';
 import { WidgetBase } from './../WidgetBase';
 import { Constructor, WidgetProperties } from './../interfaces';
 import cssTransitions from '../animations/cssTransitions';
@@ -53,8 +55,14 @@ export interface ProjectorMixin {
 	 */
 	replace(root?: Element): Promise<Handle>;
 
+	/**
+	 * Pause the projector.
+	 */
 	pause(): void;
 
+	/**
+	 * Resume the projector.
+	 */
 	resume(): void;
 
 	/**
@@ -66,6 +74,11 @@ export interface ProjectorMixin {
 	 * The status of the projector
 	 */
 	readonly projectorState: ProjectorAttachState;
+}
+
+export interface EventIntercepterItem {
+	handler: Function;
+	properties: VNodeProperties;
 }
 
 export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties>>>(base: T): T & Constructor<ProjectorMixin> {
@@ -85,9 +98,12 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 		private paused: boolean;
 		private boundDoRender: FrameRequestCallback;
 		private boundRender: Function;
+		private eventIntercepterNodeMap: WeakMap<Node, Map<string, EventIntercepterItem>>;
 
 		constructor(...args: any[]) {
 			super(...args);
+
+			this.eventIntercepterNodeMap = new WeakMap<Node, Map<string, EventIntercepterItem>>();
 
 			this.projectionOptions = {
 				transitions: cssTransitions,
@@ -174,7 +190,24 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			return result;
 		}
 
-		private eventHandlerInterceptor() {
+		private eventHandlerInterceptor(propertyName: string, callback: Function, domNode: Node, properties: VNodeProperties) {
+			const eventName = propertyName.substr(2);
+			let eventMap = this.eventIntercepterNodeMap.get(domNode);
+
+			if (!eventMap) {
+				eventMap = new Map<string, EventIntercepterItem>();
+			}
+
+			const eventItem = eventMap.get(eventName);
+
+			if (!eventItem) {
+				domNode.addEventListener(eventName, this.eventHandler.bind(this, domNode, callback, properties));
+				eventMap.set(eventName, { handler: callback, properties });
+			}
+		}
+
+		private eventHandler(domNode: Node, callback: Function, properties: VNodeProperties, evt: Event) {
+			return callback.apply(properties.bind || properties, [ evt ]);
 		}
 
 		private doRender() {
@@ -183,13 +216,11 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			if (!this.rendered) {
 				return;
 			}
-
 			this.rendered = false;
 
 			if (this.projection) {
 				this.projection.update(this.boundRender());
 			}
-
 			this.rendered = true;
 		}
 

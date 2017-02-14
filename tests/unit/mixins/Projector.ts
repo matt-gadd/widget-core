@@ -252,6 +252,26 @@ registerSuite({
 			}, Error, 'already attached');
 		});
 	},
+	'event handler intercepter'() {
+			let count = 0;
+			const Projector = class extends TestWidget {
+				onClick() {
+					this.invalidate();
+				}
+				render() {
+					return v('div', {
+						innerHTML: String(count++),
+						onclick: this.onClick
+					}, []);
+				}
+			};
+
+			const projector = new Projector({});
+			return projector.append().then(() => {
+				return new Promise((resolve) => {
+				});
+			});
+	},
 	async '-active gets appended to enter/exit animations by default'(this: any) {
 		if (!has('host-browser')) {
 			this.skip('This test can only be run in a browser');
