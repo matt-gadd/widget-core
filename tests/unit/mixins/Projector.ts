@@ -4,7 +4,7 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { spy } from 'sinon';
 import { v } from '../../../src/d';
-import { ProjectorMixin, ProjectorState } from '../../../src/mixins/Projector';
+import { ProjectorMixin, ProjectorAttachState } from '../../../src/mixins/Projector';
 import { WidgetBase } from '../../../src/WidgetBase';
 
 class TestWidget extends ProjectorMixin(WidgetBase)<any> {}
@@ -176,29 +176,26 @@ registerSuite({
 	'get projector state'() {
 		const projector = new TestWidget({});
 
-		assert.equal(projector.projectorState, ProjectorState.Detached);
+		assert.equal(projector.projectorState, ProjectorAttachState.Detached);
 		return projector.append().then(() => {
-			assert.equal(projector.projectorState, ProjectorState.Attached);
+			assert.equal(projector.projectorState, ProjectorAttachState.Attached);
 			projector.destroy();
-			assert.equal(projector.projectorState, ProjectorState.Detached);
+			assert.equal(projector.projectorState, ProjectorAttachState.Detached);
 		});
 
 	},
 	'destroy'() {
 		const projector: any = new TestWidget({});
-		const maquetteProjectorStopSpy = spy(projector.projector, 'stop');
-		const maquetteProjectorDetachSpy = spy(projector.projector, 'detach');
+		const maquetteProjectorStopSpy = spy(projector, 'pause');
 
 		return projector.append().then(() => {
 			projector.destroy();
 
 			assert.isTrue(maquetteProjectorStopSpy.calledOnce);
-			assert.isTrue(maquetteProjectorDetachSpy.calledOnce);
 
 			projector.destroy();
 
 			assert.isTrue(maquetteProjectorStopSpy.calledOnce);
-			assert.isTrue(maquetteProjectorDetachSpy.calledOnce);
 		});
 
 	},
@@ -216,7 +213,6 @@ registerSuite({
 	},
 	'invalidate before attached'() {
 		const projector: any = new TestWidget({});
-		const maquetteProjectorSpy = spy(projector.projector, 'scheduleRender');
 		let called = false;
 
 		projector.on('render:scheduled', () => {
@@ -225,12 +221,10 @@ registerSuite({
 
 		projector.invalidate();
 
-		assert.isFalse(maquetteProjectorSpy.called);
 		assert.isFalse(called);
 	},
 	'invalidate after attached'() {
 		const projector: any = new TestWidget({});
-		const maquetteProjectorSpy = spy(projector.projector, 'scheduleRender');
 		let called = false;
 
 		projector.on('render:scheduled', () => {
@@ -239,7 +233,6 @@ registerSuite({
 
 		return projector.append().then(() => {
 			projector.invalidate();
-			assert.isTrue(maquetteProjectorSpy.called);
 			assert.isTrue(called);
 		});
 	},

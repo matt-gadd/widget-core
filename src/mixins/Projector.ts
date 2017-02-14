@@ -1,14 +1,14 @@
-import { EventTargettedObject, Handle } from '@dojo/interfaces/core';
+import { Handle } from '@dojo/interfaces/core';
 import Promise from '@dojo/shim/Promise';
-import { createProjector as createMaquetteProjector, Projector as MaquetteProjector } from 'maquette';
+import { dom, Projection, ProjectionOptions } from 'maquette';
 import { WidgetBase } from './../WidgetBase';
 import { Constructor, WidgetProperties } from './../interfaces';
 import cssTransitions from '../animations/cssTransitions';
 
 /**
- * Represents the state of the projector
+ * Represents the attach state of the projector
  */
-export enum ProjectorState {
+export enum ProjectorAttachState {
 	Attached = 1,
 	Detached
 };
@@ -53,6 +53,10 @@ export interface ProjectorMixin {
 	 */
 	replace(root?: Element): Promise<Handle>;
 
+	pause(): void;
+
+	resume(): void;
+
 	/**
 	 * Root element to attach the projector
 	 */
@@ -61,33 +65,44 @@ export interface ProjectorMixin {
 	/**
 	 * The status of the projector
 	 */
-	readonly projectorState: ProjectorState;
+	readonly projectorState: ProjectorAttachState;
 }
 
 export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties>>>(base: T): T & Constructor<ProjectorMixin> {
 	return class extends base {
 
-		public projectorState: ProjectorState;
-		private readonly projector: MaquetteProjector;
+		public projectorState: ProjectorAttachState;
 
 		private _root: Element;
 		private attachPromise: Promise<Handle>;
 		private attachHandle: Handle;
 		private afterCreate: (...args: any[]) => void;
 		private originalAfterCreate?: () => void;
+		private projectionOptions: ProjectionOptions;
+		private projection: Projection | undefined;
+		private rendered: boolean;
+		private scheduled: number | undefined;
+		private paused: boolean;
+		private boundDoRender: FrameRequestCallback;
+		private boundRender: Function;
 
 		constructor(...args: any[]) {
 			super(...args);
-			const maquetteProjectorOptions = {
-				transitions: cssTransitions
+
+			this.projectionOptions = {
+				transitions: cssTransitions,
+				eventHandlerInterceptor: this.eventHandlerInterceptor.bind(this)
 			};
+
+			this.boundDoRender = this.doRender.bind(this);
+			this.boundRender = this.__render__.bind(this);
 
 			this.own(this.on('widget:children', this.invalidate));
 			this.own(this.on('invalidated', this.scheduleRender));
 
-			this.projector = createMaquetteProjector(maquetteProjectorOptions);
 			this.root = document.body;
-			this.projectorState = ProjectorState.Detached;
+			this.rendered = true;
+			this.projectorState = ProjectorAttachState.Detached;
 		}
 
 		append(root?: Element) {
@@ -117,8 +132,22 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			return this.attach(options);
 		}
 
+		pause() {
+			if (this.scheduled) {
+				cancelAnimationFrame(this.scheduled);
+				this.scheduled = undefined;
+			}
+			this.paused = true;
+		}
+
+		resume() {
+			this.paused = false;
+			this.rendered = true;
+			this.scheduleRender();
+		}
+
 		set root(root: Element) {
-			if (this.projectorState === ProjectorState.Attached) {
+			if (this.projectorState === ProjectorAttachState.Attached) {
 				throw new Error('Projector already attached, cannot change root element');
 			}
 			this._root = root;
@@ -145,34 +174,54 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			return result;
 		}
 
-		private scheduleRender(event: EventTargettedObject<this>) {
-			const { target: projector } = event;
-			if (this.projectorState === ProjectorState.Attached) {
-				projector.emit({
+		private eventHandlerInterceptor() {
+		}
+
+		private doRender() {
+			this.scheduled = undefined;
+
+			if (!this.rendered) {
+				return;
+			}
+
+			this.rendered = false;
+
+			if (this.projection) {
+				this.projection.update(this.boundRender());
+			}
+
+			this.rendered = true;
+		}
+
+		private scheduleRender() {
+			if (this.projectorState === ProjectorAttachState.Attached) {
+				this.emit({
 					type: 'render:scheduled',
-					target: projector
+					target: this
 				});
-				this.projector.scheduleRender();
+				if (!this.scheduled && !this.paused) {
+					this.scheduled = requestAnimationFrame(this.boundDoRender);
+				}
 			}
 		}
 
 		private attach({ type, root }: AttachOptions) {
-			const render = this.__render__.bind(this);
 			if (root) {
 				this.root = root;
 			}
 
-			if (this.projectorState === ProjectorState.Attached) {
+			if (this.projectorState === ProjectorAttachState.Attached) {
 				return this.attachPromise || Promise.resolve({});
 			}
-			this.projectorState = ProjectorState.Attached;
+
+			this.projectorState = ProjectorAttachState.Attached;
 
 			this.attachHandle = this.own({
 				destroy: () => {
-					if (this.projectorState === ProjectorState.Attached) {
-						this.projector.stop();
-						this.projector.detach(render);
-						this.projectorState = ProjectorState.Detached;
+					if (this.projectorState === ProjectorAttachState.Attached) {
+						this.pause();
+						this.projection = undefined;
+						this.projectorState = ProjectorAttachState.Detached;
 					}
 					this.attachHandle = { destroy() { } };
 				}
@@ -195,13 +244,13 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 
 			switch (type) {
 				case AttachType.Append:
-					this.projector.append(this.root, render);
+					this.projection = dom.append(this.root, this.boundRender(), this.projectionOptions);
 				break;
 				case AttachType.Merge:
-					this.projector.merge(this.root, render);
+					this.projection = dom.merge(this.root, this.boundRender(), this.projectionOptions);
 				break;
 				case AttachType.Replace:
-					this.projector.replace(this.root, render);
+					this.projection = dom.replace(this.root, this.boundRender(), this.projectionOptions);
 				break;
 			}
 
