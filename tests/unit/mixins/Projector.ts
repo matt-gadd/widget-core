@@ -218,26 +218,10 @@ registerSuite({
 	},
 	foo: {
 		beforeEach() {
-			return new Promise((resolve) => {
-				const w: any = window;
-				const def = w.define;
-				w.define = undefined;
-				const d = document;
-				const script = d.createElement('script');
-				script.type = 'text/javascript';
-				script.async = true;
-				script.onload = function(){
-					resolve();
-					w.define = def;
-				};
-				script.src = 'https://code.jquery.com/pep/0.4.1/pep.js';
-				d.getElementsByTagName('head')[0].appendChild(script);
-
-				const style: any = document.createElement('style');
-				style.appendChild(document.createTextNode(''));
-				document.head.appendChild(style);
-				style.sheet.addRule('.box:hover', 'width: 400px !important;', 0);
-			});
+			const style: any = document.createElement('style');
+			style.appendChild(document.createTextNode(''));
+			document.head.appendChild(style);
+			style.sheet.addRule('.box:hover', 'width: 400px !important;', 0);
 		},
 		'boo'() {
 			const projector = new class extends TestWidget {

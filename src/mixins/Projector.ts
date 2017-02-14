@@ -4,6 +4,7 @@ import { dom, Projection } from 'maquette';
 import { Handle } from '@dojo/interfaces/core';
 import { WidgetConstructor, WidgetProperties } from './../WidgetBase';
 import { Constructor } from './../interfaces';
+import 'pepjs';
 
 /**
  * Represents the state of the projector

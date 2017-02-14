@@ -66,6 +66,7 @@ export const loaderOptions = {
 		{ name: '@dojo', location: 'node_modules/@dojo' },
 		{ name: 'globalize', location: 'node_modules/globalize', main: 'dist/globalize' },
 		{ name: 'maquette', location: 'node_modules/maquette/dist', main: 'maquette' },
+		{ name: 'pepjs', location: 'node_modules/pepjs/dist', main: 'pep' },
 		{ name: 'sinon', location: 'node_modules/sinon/pkg', main: 'sinon' }
 	],
 	map: {
