@@ -232,10 +232,21 @@ registerSuite({
 				};
 				script.src = 'https://code.jquery.com/pep/0.4.1/pep.js';
 				d.getElementsByTagName('head')[0].appendChild(script);
+
+				const style: any = document.createElement('style');
+				style.appendChild(document.createTextNode(''));
+				document.head.appendChild(style);
+				style.sheet.addRule('.box:hover', 'width: 400px !important;', 0);
 			});
 		},
 		'boo'() {
 			const projector = new class extends TestWidget {
+				private transitionMessage: string;
+
+				constructor(...args: any[]) {
+					super({});
+					this.transitionMessage = 'animation';
+				}
 				onRoot() {
 					console.log('event fired for root');
 				}
@@ -254,6 +265,17 @@ registerSuite({
 					console.log('on mouse over');
 					return false;
 				}
+				onCheck(e: any) {
+					console.log('check');
+					e.preventDefault();
+				}
+				onNestedTransition(e: any) {
+					console.log('on transition end');
+					this.transitionMessage = 'ended transition';
+				}
+				onFocus(e: any) {
+					console.log('on focus');
+				}
 				render() {
 					const children = [
 						v('div', {
@@ -271,11 +293,25 @@ registerSuite({
 							onclick: this.onNestedStopPropagation,
 							style: 'width: 100px; height: 100px; background: orange;',
 							innerHTML: 'child: stop propagation'
+						}),
+						v('div', {
+							classes: { box: true },
+							style: 'width: 100px; height: 100px; background: red; transition: width 2s',
+							ontransitionend: this.onNestedTransition,
+							innerHTML: this.transitionMessage
+						}),
+						v('input', {
+							type: 'checkbox',
+							onclick: this.onCheck
+						}),
+						v('input', {
+							type: 'textbox',
+							onfocus: this.onFocus
 						})
 					];
 					return v('div', {
 						onclick: this.onRoot,
-						style: 'width: 300px; height: 300px; background: yellow;'
+						style: 'width: 400px; height: 400px; background: yellow;'
 					}, children);
 				}
 			}({});

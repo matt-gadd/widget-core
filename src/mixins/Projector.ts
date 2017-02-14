@@ -112,7 +112,7 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 			this.renderCompleted = true;
 			this.projectionOptions = { eventHandlerInterceptor: this.eventHandlerInterceptor.bind(this) };
 			this.boundRender = this.doRender.bind(this);
-			this.boundHandler = this.handler.bind(this);
+			this.boundHandler = this.eventHandler.bind(this);
 
 			if (cssTransitions) {
 				if (global.cssTransitions) {
@@ -146,7 +146,7 @@ export function ProjectorMixin<T extends WidgetConstructor>(base: T): T & Constr
 			this.events.set(domNode, map);
 		}
 
-		private handler(evt: any) {
+		private eventHandler(evt: any) {
 			let node;
 			let handle;
 			let eventMatches = false;
