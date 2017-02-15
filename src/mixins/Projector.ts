@@ -6,6 +6,7 @@ import { dom, Projection, ProjectionOptions, VNodeProperties } from 'maquette';
 import { WidgetBase } from './../WidgetBase';
 import { Constructor, WidgetProperties } from './../interfaces';
 import cssTransitions from '../animations/cssTransitions';
+import 'pepjs';
 
 /**
  * Represents the attach state of the projector
@@ -104,7 +105,6 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			super(...args);
 
 			this.eventIntercepterNodeMap = new WeakMap<Node, Map<string, EventIntercepterItem>>();
-
 			this.projectionOptions = {
 				transitions: cssTransitions,
 				eventHandlerInterceptor: this.eventHandlerInterceptor.bind(this)
