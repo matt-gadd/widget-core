@@ -6,6 +6,7 @@ import { spy } from 'sinon';
 import { v } from '../../../src/d';
 import { ProjectorMixin, ProjectorAttachState } from '../../../src/mixins/Projector';
 import { WidgetBase } from '../../../src/WidgetBase';
+import global from '@dojo/core/global';
 
 class TestWidget extends ProjectorMixin(WidgetBase)<any> {}
 
@@ -51,8 +52,21 @@ async function waitFor(callback: () => boolean, message: string = 'timed out wai
 	});
 }
 
+let rafSpy: any;
+let cancelRafSpy: any;
+
 registerSuite({
 	name: 'mixins/projectorMixin',
+
+	beforeEach() {
+		rafSpy = spy(global, 'requestAnimationFrame');
+		cancelRafSpy = spy(global, 'cancelAnimationFrame');
+	},
+
+	afterEach() {
+		rafSpy.restore();
+		cancelRafSpy.restore();
+	},
 
 	'render throws an error for null result'() {
 		const projector = new class extends TestWidget {
@@ -172,6 +186,34 @@ registerSuite({
 		assert.equal(projector.root, document.body);
 		projector.root = root;
 		assert.equal(projector.root, root);
+	},
+	'pause'() {
+		const projector = new TestWidget({});
+		let called = false;
+		projector.on('render:scheduled', () => {
+			called = true;
+		});
+		return projector.append().then(() => {
+			projector.pause();
+			projector.scheduleRender();
+			assert.isFalse(called);
+		});
+	},
+	'pause cancels animation frame if scheduled'() {
+		const projector = new TestWidget({});
+
+		return projector.append().then(() => {
+			projector.scheduleRender();
+			projector.pause();
+			assert.isTrue(cancelRafSpy.called);
+		});
+	},
+	'resume'() {
+		const projector = new TestWidget({});
+		spy(projector, 'scheduleRender');
+		assert.isFalse((<any> projector.scheduleRender).called);
+		projector.resume();
+		assert.isTrue((<any> projector.scheduleRender).called);
 	},
 	'get projector state'() {
 		const projector = new TestWidget({});

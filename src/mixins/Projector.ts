@@ -1,4 +1,5 @@
 import { Handle } from '@dojo/interfaces/core';
+import global from '@dojo/core/global';
 import Promise from '@dojo/shim/Promise';
 import WeakMap from '@dojo/shim/WeakMap';
 import Map from '@dojo/shim/Map';
@@ -64,6 +65,11 @@ export interface ProjectorMixin {
 	 * Resume the projector.
 	 */
 	resume(): void;
+
+	/**
+	 * Schedule a render.
+	 */
+	scheduleRender(): void;
 
 	/**
 	 * Root element to attach the projector
@@ -149,7 +155,7 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 
 		pause() {
 			if (this.scheduled) {
-				cancelAnimationFrame(this.scheduled);
+				global.cancelAnimationFrame(this.scheduled);
 				this.scheduled = undefined;
 			}
 			this.paused = true;
@@ -159,6 +165,16 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			this.paused = false;
 			this.rendered = true;
 			this.scheduleRender();
+		}
+
+		scheduleRender() {
+			if (this.projectorState === ProjectorAttachState.Attached && !this.scheduled && !this.paused) {
+				this.emit({
+					type: 'render:scheduled',
+					target: this
+				});
+				this.scheduled = global.requestAnimationFrame(this.boundDoRender);
+			}
 		}
 
 		set root(root: Element) {
@@ -224,18 +240,6 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 				this.projection.update(this.boundRender());
 			}
 			this.rendered = true;
-		}
-
-		private scheduleRender() {
-			if (this.projectorState === ProjectorAttachState.Attached) {
-				this.emit({
-					type: 'render:scheduled',
-					target: this
-				});
-				if (!this.scheduled && !this.paused) {
-					this.scheduled = requestAnimationFrame(this.boundDoRender);
-				}
-			}
 		}
 
 		private attach({ type, root }: AttachOptions) {
