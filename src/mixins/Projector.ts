@@ -209,20 +209,16 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			if (!eventMap) {
 				eventMap = new Map<string, EventIntercepterItem>();
 			}
+
 			const eventItem = eventMap.get(eventName);
 
 			if (!eventItem) {
-				domNode.addEventListener(eventName, this.eventHandler.bind(this, eventMap));
+				domNode.addEventListener(eventName, (evt: Event) => {
+					return callback.apply(properties.bind || properties, [ evt ]);
+				});
 			}
-			eventMap.set(eventName, { handler: callback, properties });
-		}
 
-		private eventHandler(eventMap: Map<string, EventIntercepterItem>, evt: Event) {
-			const item = eventMap.get(evt.type);
-			if (item) {
-				const { handler, properties } = item;
-				return handler.apply(properties.bind || properties, [ evt ]);
-			}
+			eventMap.set(eventName, { handler: callback, properties });
 		}
 
 		private doRender() {
