@@ -99,7 +99,6 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 		private originalAfterCreate?: () => void;
 		private projectionOptions: ProjectionOptions;
 		private projection: Projection | undefined;
-		private rendered: boolean;
 		private scheduled: number | undefined;
 		private paused: boolean;
 		private boundDoRender: FrameRequestCallback;
@@ -122,7 +121,6 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 			this.own(this.on('invalidated', this.scheduleRender));
 
 			this.root = document.body;
-			this.rendered = true;
 			this.projectorState = ProjectorAttachState.Detached;
 		}
 
@@ -163,7 +161,6 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 
 		resume() {
 			this.paused = false;
-			this.rendered = true;
 			this.scheduleRender();
 		}
 
@@ -231,15 +228,9 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 		private doRender() {
 			this.scheduled = undefined;
 
-			if (!this.rendered) {
-				return;
-			}
-			this.rendered = false;
-
 			if (this.projection) {
 				this.projection.update(this.boundRender());
 			}
-			this.rendered = true;
 		}
 
 		private attach({ type, root }: AttachOptions) {

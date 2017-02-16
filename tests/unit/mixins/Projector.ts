@@ -294,6 +294,28 @@ registerSuite({
 			}, Error, 'already attached');
 		});
 	},
+	'can attach an event'() {
+		let domNode: any;
+		let domEvent: any;
+		const onclick = (evt: any) => {
+			domEvent = evt;
+		};
+		const afterCreate = (node: Node) => {
+			domNode = node;
+		};
+		const Projector = class extends TestWidget {
+			render() {
+				return v('div', { onclick, afterCreate });
+			}
+		};
+
+		const projector = new Projector({});
+		return projector.append().then(() => {
+			const mouseEvent = new global.window.MouseEvent('click', { view: window, bubbles: true });
+			domNode.dispatchEvent(mouseEvent);
+			assert.equal(mouseEvent, domEvent);
+		});
+	},
 	async '-active gets appended to enter/exit animations by default'(this: any) {
 		if (!has('host-browser')) {
 			this.skip('This test can only be run in a browser');
