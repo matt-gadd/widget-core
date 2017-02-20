@@ -2,7 +2,7 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import Promise from '@dojo/shim/Promise';
 import { DNode } from '../../src/interfaces';
-import { WidgetBase, diffProperty, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
+import { WidgetBase, diffProperty, computedProperty, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
 import { VNode } from '@dojo/interfaces/vdom';
 import { v, w, registry } from '../../src/d';
 import { stub } from 'sinon';
@@ -60,6 +60,55 @@ registerSuite({
 			const result = widgetBase.diffProperties({ id: 'id', foo: 'bar' }, properties);
 			assert.lengthOf(result.changedKeys, 4);
 			assert.deepEqual(result.changedKeys, [ 'foo', 'bar', 'baz', 'qux']);
+		}
+	},
+	computedProperty: {
+		decorator() {
+			let value;
+			class TestWidget extends WidgetBase<any> {
+
+				@computedProperty('foo')
+				computedPropertyFoo(this: any, value: any): any {
+					return 'qux';
+				}
+
+				render() {
+					value = this.properties.foo;
+					return v('div', {});
+				}
+			}
+
+			const testWidget = new TestWidget();
+			testWidget.setProperties({ foo: 'bar' });
+			testWidget.__render__();
+			assert.equal(value, 'qux');
+		},
+		'non-decorator'() {
+			let value;
+			class TestWidget extends WidgetBase<any> {
+
+				constructor() {
+					super();
+					this.addDecorator('computedProperty', {
+						propertyName: 'foo',
+						computedFunction: this.computedPropertyFoo
+					});
+				}
+
+				computedPropertyFoo(this: any, value: any): any {
+					return 'qux';
+				}
+
+				render() {
+					value = this.properties.foo;
+					return v('div', {});
+				}
+			}
+
+			const testWidget = new TestWidget();
+			testWidget.setProperties({ foo: 'bar' });
+			testWidget.__render__();
+			assert.equal(value, 'qux');
 		}
 	},
 	diffProperty: {

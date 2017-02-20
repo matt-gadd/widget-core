@@ -58,6 +58,12 @@ export function diffProperty(propertyName: string) {
 	};
 }
 
+export function computedProperty(propertyName: string) {
+	return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+		target.addDecorator('computedProperty', { propertyName, computedFunction: target[propertyKey] });
+	};
+}
+
 /**
  * Decorator used to register listeners to the `properties:changed` event.
  */
@@ -196,6 +202,13 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 
 		const changedPropertyKeys = [...diffPropertiesResult.changedKeys, ...diffPropertyChangedKeys];
 
+		this.previousProperties = this.properties;
+
+		const registeredComputedProperties: any[] = this.getDecorator('computedProperty') || [];
+		registeredComputedProperties.forEach(({ propertyName, computedFunction }) => {
+			(<any> this.properties)[propertyName] = computedFunction(this.properties[propertyName]);
+		});
+
 		if (changedPropertyKeys.length) {
 			this.emit({
 				type: 'properties:changed',
@@ -204,7 +217,6 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 				changedPropertyKeys
 			});
 		}
-		this.previousProperties = this.properties;
 	}
 
 	public get children(): DNode[] {
