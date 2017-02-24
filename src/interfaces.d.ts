@@ -1,4 +1,4 @@
-import { VNode, VNodeProperties, ProjectionOptions } from '@dojo/interfaces/vdom';
+import { VNode, VNodeProperties } from '@dojo/interfaces/vdom';
 import { EventTypedObject } from '@dojo/interfaces/core';
 import { Evented } from '@dojo/core/Evented';
 
@@ -90,28 +90,6 @@ export interface VirtualDomProperties {
 	 * @param previousProperties - The previous properties object that was supplied to the [[h]] method
 	 */
 	updateAnimation?: (element: Element, properties?: VNodeProperties, previousProperties?: VNodeProperties) => void;
-	/**
-	 * Callback that is executed after this node is added to the DOM. Child nodes and properties have
-	 * already been applied.
-	 * @param element - The element that was added to the DOM.
-	 * @param projectionOptions - The projection options that were used, see [[createProjector]].
-	 * @param vnodeSelector - The selector passed to the [[h]] function.
-	 * @param properties - The properties passed to the [[h]] function.
-	 * @param children - The children that were created.
-	 */
-	afterCreate?(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string, properties: VNodeProperties,
-	children: VNode[]): void;
-	/**
-	 * Callback that is executed every time this node may have been updated. Child nodes and properties
-	 * have already been updated.
-	 * @param element - The element that may have been updated in the DOM.
-	 * @param projectionOptions - The projection options that were used, see [[createProjector]].
-	 * @param vnodeSelector - The selector passed to the [[h]] function.
-	 * @param properties - The properties passed to the [[h]] function.
-	 * @param children - The children for this node.
-	 */
-	afterUpdate?(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string, properties: VNodeProperties,
-	children: VNode[]): void;
 	/**
 	 * When specified, the event handlers will be invoked with 'this' pointing to the value.
 	 * This is useful when using the prototype/class based implementation of Components.

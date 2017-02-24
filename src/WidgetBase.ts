@@ -6,10 +6,11 @@ import Map from '@dojo/shim/Map';
 import Promise from '@dojo/shim/Promise';
 import Set from '@dojo/shim/Set';
 import WeakMap from '@dojo/shim/WeakMap';
-import { v, registry, isWNode } from './d';
+import { v, registry, isWNode, decorate, isHNode } from './d';
 import FactoryRegistry, { WIDGET_BASE_TYPE } from './FactoryRegistry';
 import {
 	DNode,
+	HNode,
 	WidgetConstructor,
 	WidgetProperties,
 	WidgetBaseInterface,
@@ -63,6 +64,10 @@ export function diffProperty(propertyName: string) {
  */
 export function onPropertiesChanged(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
 	target.addDecorator('onPropertiesChanged', target[propertyKey]);
+}
+
+function isHNodeWithKey(node: DNode): boolean {
+	return isHNode(node) && node.properties && node.properties.key != null;
 }
 
 /**
@@ -137,12 +142,19 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 */
 	protected registry: FactoryRegistry | undefined;
 
+	protected nodes: Map<string, Element>;
+
+	protected rootNode: Element;
+
+	private _nodeAddedKeys: string[] = [];
+
 	/**
 	 * @constructor
 	 */
 	constructor() {
 		super({});
 
+		this.nodes = new Map<string, Element>();
 		this._children = [];
 		this._properties = <P> {};
 		this.previousProperties = <P> {};
@@ -234,6 +246,60 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		return v('div', {}, this.children);
 	}
 
+	private keyedCreate(...args: any[]) {
+		const [ domNode, , , props ] = args;
+		this.nodes.set(props.key, domNode);
+		this._nodeAddedKeys.push(props.key);
+	}
+
+	private rootUpdate(...args: any[]) {
+		const [ domNode ] = args;
+		const nodesRemovedKeys: string[] = [];
+		this.rootNode = domNode;
+		if (this._nodeAddedKeys.length) {
+			this.nodesAdded(this.nodes, this._nodeAddedKeys);
+		}
+		this.nodes.forEach((value: Element, key: string) => {
+			if (!value.parentNode) {
+				nodesRemovedKeys.push(key);
+			}
+		});
+		if (nodesRemovedKeys.length) {
+			this.nodesRemoved(this.nodes, nodesRemovedKeys);
+			nodesRemovedKeys.forEach((key) => {
+				this.nodes.delete(key);
+			});
+		}
+	}
+
+	private rootCreate(...args: any[]) {
+		const [ domNode ] = args;
+		this.rootNode = domNode;
+		this.attached(this.rootNode, this.nodes);
+	}
+
+	private addCreateHooksForKey(dNode: DNode) {
+		decorate(dNode, (node: HNode) => {
+			node.properties.afterCreate = this.keyedCreate;
+		}, isHNodeWithKey);
+	}
+
+	private addCreateHookForRoot(dNode: DNode) {
+		if (isHNode(dNode)) {
+			dNode.properties.afterCreate = this.rootCreate;
+			dNode.properties.afterUpdate = this.rootUpdate;
+		}
+	}
+
+	protected attached(rootNode: Element, nodes: Map<string, Element>) {
+	}
+
+	protected nodesAdded(nodes: Map<string, Element>, keys: string[]) {
+	}
+
+	protected nodesRemoved(nodes: Map<string, Element>, keys: string[]) {
+	}
+
 	public __render__(): VNode | string | null {
 		if (this.dirty || !this.cachedVNode) {
 			let dNode = this.render();
@@ -241,6 +307,8 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 			afterRenders.forEach((afterRenderFunction: Function) => {
 				dNode = afterRenderFunction.call(this, dNode);
 			});
+			this.addCreateHooksForKey(dNode);
+			this.addCreateHookForRoot(dNode);
 			const widget = this.dNodeToVNode(dNode);
 			this.manageDetachedChildren();
 			if (widget) {
