@@ -100,22 +100,6 @@ registerSuite({
 			assert.equal(error.message, 'Must provide a VNode at the root of a projector');
 		}
 	},
-	'render does not attach after create when there are no properties'() {
-		const projector = new class extends TestWidget {
-			render() {
-				return v('div', <any> null);
-			}
-
-			__render__() {
-				const results: any = super.__render__();
-				results.properties = undefined;
-				return results;
-			}
-		}();
-
-		const vnode  = <any> projector.__render__();
-		assert.isUndefined(vnode.properties);
-	},
 	'attach to projector': {
 		'append'() {
 			const childNodeLength = document.body.childNodes.length;
@@ -123,13 +107,12 @@ registerSuite({
 
 			projector.setChildren([ v('h2', [ 'foo' ] ) ]);
 
-			return projector.append().then((attachHandle) => {
-				assert.strictEqual(document.body.childNodes.length, childNodeLength + 1, 'child should have been added');
-				const child = <HTMLElement> document.body.lastChild;
-				assert.strictEqual(child.innerHTML, '<h2>foo</h2>');
-				assert.strictEqual(child.tagName.toLowerCase(), 'div');
-				assert.strictEqual(( <HTMLElement> child.firstChild).tagName.toLowerCase(), 'h2');
-			});
+			projector.append();
+			assert.strictEqual(document.body.childNodes.length, childNodeLength + 1, 'child should have been added');
+			const child = <HTMLElement> document.body.lastChild;
+			assert.strictEqual(child.innerHTML, '<h2>foo</h2>');
+			assert.strictEqual(child.tagName.toLowerCase(), 'div');
+			assert.strictEqual(( <HTMLElement> child.firstChild).tagName.toLowerCase(), 'h2');
 		},
 		'replace'() {
 			const projector = new class extends TestWidget {
@@ -140,12 +123,11 @@ registerSuite({
 
 			projector.setChildren([ v('h2', [ 'foo' ] ) ]);
 
-			return projector.replace().then((attachHandle) => {
-				assert.strictEqual(document.body.childNodes.length, 1, 'child should have been added');
-				const child = <HTMLElement> document.body.lastChild;
-				assert.strictEqual(child.innerHTML, 'foo');
-				assert.strictEqual(child.tagName.toLowerCase(), 'h2');
-			});
+			projector.replace();
+			assert.strictEqual(document.body.childNodes.length, 1, 'child should have been added');
+			const child = <HTMLElement> document.body.lastChild;
+			assert.strictEqual(child.innerHTML, 'foo');
+			assert.strictEqual(child.tagName.toLowerCase(), 'h2');
 		},
 		'merge'() {
 			const childNodeLength = document.body.childNodes.length;
@@ -153,12 +135,11 @@ registerSuite({
 
 			projector.setChildren([ v('h2', [ 'foo' ] ) ]);
 
-			return projector.merge().then((attachHandle) => {
-				assert.strictEqual(document.body.childNodes.length, childNodeLength + 1, 'child should have been added');
-				const child = <HTMLElement> document.body.lastChild;
-				assert.strictEqual(child.innerHTML, 'foo');
-				assert.strictEqual(child.tagName.toLowerCase(), 'h2');
-			});
+			projector.merge();
+			assert.strictEqual(document.body.childNodes.length, childNodeLength + 1, 'child should have been added');
+			const child = <HTMLElement> document.body.lastChild;
+			assert.strictEqual(child.innerHTML, 'foo');
+			assert.strictEqual(child.tagName.toLowerCase(), 'h2');
 		}
 	},
 	'attach event'() {
@@ -176,9 +157,8 @@ registerSuite({
 			assert.strictEqual((<HTMLElement> root.firstChild).tagName.toLowerCase(), 'div');
 			assert.strictEqual((<HTMLElement> root.firstChild).innerHTML, '<h2>foo</h2>');
 		});
-		return projector.append(root).then(() => {
-			assert.isTrue(eventFired);
-		});
+		projector.append(root);
+		assert.isTrue(eventFired);
 	},
 	'get root'() {
 		const projector = new TestWidget();
@@ -193,20 +173,18 @@ registerSuite({
 		projector.on('render:scheduled', () => {
 			called = true;
 		});
-		return projector.append().then(() => {
-			projector.pause();
-			projector.scheduleRender();
-			assert.isFalse(called);
-		});
+		projector.append();
+		projector.pause();
+		projector.scheduleRender();
+		assert.isFalse(called);
 	},
 	'pause cancels animation frame if scheduled'() {
 		const projector = new TestWidget();
 
-		return projector.append().then(() => {
-			projector.scheduleRender();
-			projector.pause();
-			assert.isTrue(cancelRafSpy.called);
-		});
+		projector.append();
+		projector.scheduleRender();
+		projector.pause();
+		assert.isTrue(cancelRafSpy.called);
 	},
 	'resume'() {
 		const projector = new TestWidget();
@@ -219,27 +197,20 @@ registerSuite({
 		const projector = new TestWidget();
 
 		assert.equal(projector.projectorState, ProjectorAttachState.Detached);
-		return projector.append().then(() => {
-			assert.equal(projector.projectorState, ProjectorAttachState.Attached);
-			projector.destroy();
-			assert.equal(projector.projectorState, ProjectorAttachState.Detached);
-		});
-
+		projector.append();
+		assert.equal(projector.projectorState, ProjectorAttachState.Attached);
+		projector.destroy();
+		assert.equal(projector.projectorState, ProjectorAttachState.Detached);
 	},
 	'destroy'() {
 		const projector: any = new TestWidget();
 		const maquetteProjectorStopSpy = spy(projector, 'pause');
 
-		return projector.append().then(() => {
-			projector.destroy();
-
-			assert.isTrue(maquetteProjectorStopSpy.calledOnce);
-
-			projector.destroy();
-
-			assert.isTrue(maquetteProjectorStopSpy.calledOnce);
-		});
-
+		projector.append();
+		projector.destroy();
+		assert.isTrue(maquetteProjectorStopSpy.calledOnce);
+		projector.destroy();
+		assert.isTrue(maquetteProjectorStopSpy.calledOnce);
 	},
 	'invalidate on setting children'() {
 		const projector = new TestWidget();
@@ -273,26 +244,18 @@ registerSuite({
 			called = true;
 		});
 
-		return projector.append().then(() => {
-			projector.invalidate();
-			assert.isTrue(called);
-		});
-	},
-	'reattach'() {
-		const root = document.createElement('div');
-		const projector = new TestWidget();
-		const promise = projector.append(root);
-		assert.strictEqual(promise, projector.append(), 'same promise should be returned');
+		projector.append();
+		projector.invalidate();
+		assert.isTrue(called);
 	},
 	'setRoot throws when already attached'() {
 		const projector = new TestWidget();
 		const div = document.createElement('div');
 		projector.root = div;
-		return projector.append().then((handle) => {
-			assert.throws(() => {
-				projector.root = document.body;
-			}, Error, 'already attached');
-		});
+		projector.append();
+		assert.throws(() => {
+			projector.root = document.body;
+		}, Error, 'already attached');
 	},
 	'can attach an event'() {
 		let domNode: any;
@@ -300,20 +263,19 @@ registerSuite({
 		const onclick = (evt: any) => {
 			domEvent = evt;
 		};
-		const afterCreate = (node: Node) => {
-			domNode = node;
-		};
 		const Projector = class extends TestWidget {
+			attached(rootNode: Element) {
+				domNode = rootNode;
+			}
 			render() {
-				return v('div', { onclick, afterCreate });
+				return v('div', { onclick });
 			}
 		};
 
 		const projector = new Projector();
-		return projector.append().then(() => {
-			domNode.click();
-			assert.instanceOf(domEvent, global.window.MouseEvent);
-		});
+		projector.append();
+		domNode.click();
+		assert.instanceOf(domEvent, global.window.MouseEvent);
 	},
 	async '-active gets appended to enter/exit animations by default'(this: any) {
 		if (!has('host-browser')) {
@@ -332,7 +294,7 @@ registerSuite({
 
 		const projector = new TestProjector();
 
-		await projector.append();
+		projector.append();
 
 		children.push(v('div', {
 			id: 'test-element',
@@ -381,7 +343,7 @@ registerSuite({
 
 		const projector = new TestProjector();
 
-		await projector.append();
+		projector.append();
 
 		children.push(v('div', {
 			id: 'test-element',
@@ -439,7 +401,7 @@ registerSuite({
 
 		const projector = new TestProjector();
 
-		await projector.append();
+		projector.append();
 
 		await waitFor(() => {
 			return document.getElementById('test-element') !== null;
@@ -460,46 +422,5 @@ registerSuite({
 		await waitFor(() => {
 			return document.getElementById('test-element') === null;
 		}, 'Element never got removed');
-	},
-	'afterCreate can be overriden'() {
-		let afterCreateCalled = false;
-
-		function afterCreate(this: any, element: any, projectorOptions: any, vNodeSelector: any, properties: any, children: any) {
-			afterCreateCalled = true;
-
-			assert.isNotNull(element);
-			assert.isNotNull(projectorOptions);
-			assert.isNotNull(vNodeSelector);
-			assert.isNotNull(properties);
-			assert.isNotNull(children);
-			assert.strictEqual(this, projector);
-		}
-
-		const root = document.createElement('div');
-		document.body.appendChild(root);
-
-		const projector = new (class extends TestWidget {
-			root = root;
-
-			render() {
-				return v('span', {
-					innerHTML: 'hello world',
-					afterCreate
-				});
-			}
-		})();
-
-		// we check if the attached event fires because we need to know if
-		// the projector's afterCreate method is called, and that is where
-		// this event is dispatched
-		let eventFired = false;
-		projector.on('projector:attached', () => {
-			eventFired = true;
-		});
-
-		return projector.append().then(() => {
-			assert.isTrue(afterCreateCalled);
-			assert.isTrue(eventFired);
-		});
 	}
 });

@@ -42,17 +42,17 @@ export interface ProjectorMixin {
 	/**
 	 * Append the projector to the root.
 	 */
-	append(root?: Element): Promise<Handle>;
+	append(root?: Element): void;
 
 	/**
 	 * Merge the projector onto the root.
 	 */
-	merge(root?: Element): Promise<Handle>;
+	merge(root?: Element): void;
 
 	/**
 	 * Replace the root with the projector node.
 	 */
-	replace(root?: Element): Promise<Handle>;
+	replace(root?: Element): void;
 
 	/**
 	 * Pause the projector.
@@ -191,15 +191,13 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 		private doRender() {
 			this.scheduled = undefined;
 
-			const rendered = this.boundRender();
 			if (this.projection) {
-				this.projection.update(rendered);
+				this.projection.update(this.boundRender());
+				this.emit({
+					type: 'render:complete',
+					target: this
+				});
 			}
-			this.emit({
-				type: 'render:complete',
-				target: this
-			});
-			return rendered;
 		}
 
 		private attach({ type, root }: AttachOptions) {
@@ -224,29 +222,22 @@ export function ProjectorMixin<T extends Constructor<WidgetBase<WidgetProperties
 				}
 			});
 
-			this.attachPromise = new Promise((resolve, reject) => {
-				this.on('render:complete', () => {
-					this.emit({
-						type: 'projector:attached',
-						target: this
-					});
-					resolve(this.attachHandle);
-				});
-			});
-
 			switch (type) {
 				case AttachType.Append:
-					this.projection = dom.append(this.root, this.doRender(), this.projectionOptions);
+					this.projection = dom.append(this.root, this.boundRender(), this.projectionOptions);
 				break;
 				case AttachType.Merge:
-					this.projection = dom.merge(this.root, this.doRender(), this.projectionOptions);
+					this.projection = dom.merge(this.root, this.boundRender(), this.projectionOptions);
 				break;
 				case AttachType.Replace:
-					this.projection = dom.replace(this.root, this.doRender(), this.projectionOptions);
+					this.projection = dom.replace(this.root, this.boundRender(), this.projectionOptions);
 				break;
 			}
 
-			return this.attachPromise;
+			this.emit({
+				type: 'projector:attached',
+				target: this
+			});
 		}
 	};
 }
