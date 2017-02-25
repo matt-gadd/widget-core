@@ -142,7 +142,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 */
 	protected registry: FactoryRegistry | undefined;
 
-	protected nodes: Map<string, Element>;
+	protected keyedNodes: Map<string, Element>;
 
 	protected rootNode: Element;
 
@@ -154,7 +154,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	constructor() {
 		super({});
 
-		this.nodes = new Map<string, Element>();
+		this.keyedNodes = new Map<string, Element>();
 		this._children = [];
 		this._properties = <P> {};
 		this.previousProperties = <P> {};
@@ -248,7 +248,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 
 	private keyedCreate(...args: any[]) {
 		const [ domNode, , , props ] = args;
-		this.nodes.set(props.key, domNode);
+		this.keyedNodes.set(props.key, domNode);
 		this._nodeAddedKeys.push(props.key);
 	}
 
@@ -257,17 +257,17 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		const nodesRemovedKeys: string[] = [];
 		this.rootNode = domNode;
 		if (this._nodeAddedKeys.length) {
-			this.nodesAdded(this.nodes, this._nodeAddedKeys);
+			this.nodesAdded(this.keyedNodes, this._nodeAddedKeys);
 		}
-		this.nodes.forEach((value: Element, key: string) => {
+		this.keyedNodes.forEach((value: Element, key: string) => {
 			if (!value.parentNode) {
 				nodesRemovedKeys.push(key);
 			}
 		});
 		if (nodesRemovedKeys.length) {
-			this.nodesRemoved(this.nodes, nodesRemovedKeys);
+			this.nodesRemoved(this.keyedNodes, nodesRemovedKeys);
 			nodesRemovedKeys.forEach((key) => {
-				this.nodes.delete(key);
+				this.keyedNodes.delete(key);
 			});
 		}
 	}
@@ -275,7 +275,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	private rootCreate(...args: any[]) {
 		const [ domNode ] = args;
 		this.rootNode = domNode;
-		this.attached(this.rootNode, this.nodes);
+		this.attached(this.rootNode, this.keyedNodes);
 	}
 
 	private addCreateHooksForKey(dNode: DNode) {
