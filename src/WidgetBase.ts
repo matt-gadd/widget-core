@@ -330,13 +330,13 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	}
 
 	protected addRegistry(factoryRegistry: FactoryRegistry) {
-		this._registries.push(factoryRegistry);
+		this._registries.unshift(factoryRegistry);
 	}
 
 	protected removeRegistry(factoryRegistry: FactoryRegistry): boolean {
 		const index = this._registries.indexOf(factoryRegistry);
 		if (index > -1) {
-			this._registries.splice(index, 1)[0];
+			this._registries.splice(index, 1);
 			return true;
 		}
 		return false;
