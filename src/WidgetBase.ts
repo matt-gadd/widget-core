@@ -333,12 +333,13 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		this._registries.push(factoryRegistry);
 	}
 
-	protected removeRegistry(factoryRegistry: FactoryRegistry): FactoryRegistry | undefined {
+	protected removeRegistry(factoryRegistry: FactoryRegistry): boolean {
 		const index = this._registries.indexOf(factoryRegistry);
 		if (index > -1) {
-			return this._registries.splice(index, 1)[0];
+			this._registries.splice(index, 1)[0];
+			return true;
 		}
-		return;
+		return false;
 	}
 
 	protected replaceRegistry(original: FactoryRegistry, replacement: FactoryRegistry): boolean {
