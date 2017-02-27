@@ -16,29 +16,29 @@ registerSuite({
 			const registry = new FactoryRegistry();
 			const instance: any = new TestWithRegistry();
 			instance.setProperties({ registry });
-			assert.equal(instance.registries[1], registry);
+			assert.equal(instance._registries[0], registry);
 		},
 		'no passed registry, nothing available via getter'() {
 			const instance: any = new TestWithRegistry();
 			instance.setProperties(<any> {});
-			assert.equal(instance.registries[1], undefined);
+			assert.equal(instance._registries.length, 1);
 		},
 		'passed registry updated on property change'() {
 			const registry = new FactoryRegistry();
 			const newRegistry = new FactoryRegistry();
 			const instance: any = new TestWithRegistry();
 			instance.setProperties({ registry });
-			assert.equal(instance.registries[1], registry);
+			assert.equal(instance._registries[0], registry);
 			instance.setProperties({ registry: newRegistry });
-			assert.equal(instance.registries[1], newRegistry);
+			assert.equal(instance._registries[0], newRegistry);
 		},
 		'different property passed on property change should not affect registry'() {
 			const registry = new FactoryRegistry();
 			const instance: any = new TestWithRegistry();
 			instance.setProperties({ registry, foo: false });
-			assert.equal(instance.registries[1], registry);
+			assert.equal(instance._registries[0], registry);
 			instance.setProperties({ registry, foo: true });
-			assert.equal(instance.registries[1], registry);
+			assert.equal(instance._registries[0], registry);
 		},
 		'is excluded from the catch all diffProperties function'() {
 			const registry = new FactoryRegistry();
