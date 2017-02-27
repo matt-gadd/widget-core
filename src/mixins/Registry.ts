@@ -17,18 +17,10 @@ export function RegistryMixin<T extends Constructor<WidgetBase<RegistryMixinProp
 		public diffPropertyRegistry(previousValue: FactoryRegistry, value: FactoryRegistry): PropertyChangeRecord {
 			const changed = previousValue !== value;
 			if (changed) {
-				const position = this._registries.indexOf(previousValue);
-				if (position > -1) {
-					this._registries[position] = value;
-				}
-				else {
-					this._registries.push(value);
-				}
+				const index = this._registries.indexOf(previousValue);
+				index > -1 ? this._registries[index] = value : this._registries.push(value);
 			}
-			return {
-				changed,
-				value
-			};
+			return { changed, value };
 		}
 	};
 	return Registry;
