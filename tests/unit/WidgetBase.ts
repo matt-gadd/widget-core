@@ -648,6 +648,34 @@ registerSuite({
 			assert.lengthOf(result.children, 1);
 			assert.strictEqual(result.children![0].vnodeSelector, 'header');
 		},
+		'render using scoped registries with stackable decorators'() {
+			class TestHeaderWidget extends WidgetBase<any> {
+				render() {
+					return v('header');
+				}
+			}
+
+			@createRegistry({
+				'foo': TestHeaderWidget
+			})
+			@createRegistry({
+				'bar': TestHeaderWidget
+			})
+			class TestWidget extends WidgetBase<any> {
+				render() {
+					return v('div', [
+						w('foo', {}),
+						w('bar', {})
+					]);
+				}
+			}
+			const myWidget: any = new TestWidget();
+
+			let result = <VNode> myWidget.__render__();
+			assert.lengthOf(result.children, 2);
+			assert.strictEqual(result.children![0].vnodeSelector, 'header');
+			assert.strictEqual(result.children![1].vnodeSelector, 'header');
+		},
 		'render with nested children'() {
 			class TestWidget extends WidgetBase<any> {
 				render() {
