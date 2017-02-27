@@ -145,7 +145,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	/**
 	 * Factory registries
 	 */
-	protected _registries: FactoryRegistry[];
+	private _registries: FactoryRegistry[];
 
 	/**
 	 * @constructor
@@ -329,6 +329,27 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		return undefined;
 	}
 
+	protected addRegistry(factoryRegistry: FactoryRegistry) {
+		this._registries.push(factoryRegistry);
+	}
+
+	protected removeRegistry(factoryRegistry: FactoryRegistry): FactoryRegistry | undefined {
+		const index = this._registries.indexOf(factoryRegistry);
+		if (index > -1) {
+			return this._registries.splice(index, 1)[0];
+		}
+		return;
+	}
+
+	protected replaceRegistry(original: FactoryRegistry, replacement: FactoryRegistry): boolean {
+		const index = this._registries.indexOf(original);
+		if (index > -1) {
+			this._registries[index] = replacement;
+			return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Returns the factory from the registry for the specified label. First checks local registries in FIFO order,
 	 * before falling back to the global registry.
@@ -336,17 +357,13 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 * @param factoryLabel the label to look up in the registry
 	 */
 	private getFromRegistry(factoryLabel: string): Promise<WidgetConstructor> | WidgetConstructor | null {
-		for (let i = 0; i < this.registries.length; i++) {;
-			const registry = this.registries[i];
+		for (let i = 0; i < this._registries.length; i++) {;
+			const registry = this._registries[i];
 			if (registry && registry.has(factoryLabel)) {
 				return registry.get(factoryLabel);
 			}
 		}
 		return null;
-	}
-
-	protected get registries() {
-		return this._registries;
 	}
 
 	/**
