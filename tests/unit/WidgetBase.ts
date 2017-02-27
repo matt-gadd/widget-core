@@ -2,11 +2,10 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import Promise from '@dojo/shim/Promise';
 import { DNode } from '../../src/interfaces';
-import { WidgetBase, diffProperty, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
+import { WidgetBase, diffProperty, afterRender, onPropertiesChanged, createRegistry } from '../../src/WidgetBase';
 import { VNode } from '@dojo/interfaces/vdom';
 import { v, w, registry } from '../../src/d';
 import { stub, spy } from 'sinon';
-import FactoryRegistry from './../../src/FactoryRegistry';
 
 registerSuite({
 	name: 'WidgetBase',
@@ -605,13 +604,12 @@ registerSuite({
 				}
 			}
 
-			const registry = new FactoryRegistry();
-			registry.define('my-header', TestHeaderWidget);
-
 			class TestWidget extends WidgetBase<any> {
 				constructor() {
 					super();
-					this.registry = registry;
+					this.addDecorator('createRegistry', {
+						'my-header': TestHeaderWidget
+					});
 				}
 
 				render() {
@@ -621,6 +619,29 @@ registerSuite({
 				}
 			}
 
+			const myWidget: any = new TestWidget();
+
+			let result = <VNode> myWidget.__render__();
+			assert.lengthOf(result.children, 1);
+			assert.strictEqual(result.children![0].vnodeSelector, 'header');
+		},
+		'render using scoped registry with decorator'() {
+			class TestHeaderWidget extends WidgetBase<any> {
+				render() {
+					return v('header');
+				}
+			}
+
+			@createRegistry({
+				'foo': TestHeaderWidget
+			})
+			class TestWidget extends WidgetBase<any> {
+				render() {
+					return v('div', [
+						w('foo', {})
+					]);
+				}
+			}
 			const myWidget: any = new TestWidget();
 
 			let result = <VNode> myWidget.__render__();

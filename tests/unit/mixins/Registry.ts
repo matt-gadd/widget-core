@@ -16,39 +16,29 @@ registerSuite({
 			const registry = new FactoryRegistry();
 			const instance: any = new TestWithRegistry();
 			instance.setProperties({ registry });
-			assert.equal(instance.registry, registry);
+			assert.equal(instance.registries[1], registry);
 		},
 		'no passed registry, nothing available via getter'() {
 			const instance: any = new TestWithRegistry();
 			instance.setProperties(<any> {});
-			assert.equal(instance.registry, undefined);
+			assert.equal(instance.registries[1], undefined);
 		},
 		'passed registry updated on property change'() {
 			const registry = new FactoryRegistry();
 			const newRegistry = new FactoryRegistry();
 			const instance: any = new TestWithRegistry();
 			instance.setProperties({ registry });
-			assert.equal(instance.registry, registry);
-			instance.emit({
-				type: 'properties:changed',
-				target: instance,
-				properties: { registry: newRegistry },
-				changedPropertyKeys: [ 'registry' ]
-			});
-			assert.equal(instance.registry, newRegistry);
+			assert.equal(instance.registries[1], registry);
+			instance.setProperties({ registry: newRegistry });
+			assert.equal(instance.registries[1], newRegistry);
 		},
 		'different property passed on property change should not affect registry'() {
 			const registry = new FactoryRegistry();
 			const instance: any = new TestWithRegistry();
-			instance.setProperties({ registry });
-			assert.equal(instance.registry, registry);
-			instance.emit({
-				type: 'properties:changed',
-				target: instance,
-				properties: { foo: true },
-				changedPropertyKeys: [ 'foo' ]
-			});
-			assert.equal(instance.registry, registry);
+			instance.setProperties({ registry, foo: false });
+			assert.equal(instance.registries[1], registry);
+			instance.setProperties({ registry, foo: true });
+			assert.equal(instance.registries[1], registry);
 		},
 		'is excluded from the catch all diffProperties function'() {
 			const registry = new FactoryRegistry();

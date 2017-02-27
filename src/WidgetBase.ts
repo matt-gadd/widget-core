@@ -7,7 +7,7 @@ import Promise from '@dojo/shim/Promise';
 import Set from '@dojo/shim/Set';
 import WeakMap from '@dojo/shim/WeakMap';
 import { v, registry, isWNode } from './d';
-import FactoryRegistry, { WIDGET_BASE_TYPE } from './FactoryRegistry';
+import FactoryRegistry, { WIDGET_BASE_TYPE, FactoryRegistryItem } from './FactoryRegistry';
 import {
 	DNode,
 	WidgetConstructor,
@@ -63,6 +63,16 @@ export function diffProperty(propertyName: string) {
  */
 export function onPropertiesChanged(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
 	target.addDecorator('onPropertiesChanged', target[propertyKey]);
+}
+
+export function createRegistry(registryObj: { [index: string]: FactoryRegistryItem }) {
+	return function(constructor: Function) {
+		const registry = new FactoryRegistry();
+		Object.keys(registryObj).forEach((factoryName: string) => {
+			registry.define(factoryName, registryObj[factoryName]);
+		});
+		constructor.prototype.addDecorator('createRegistry', registry);
+	};
 }
 
 /**
@@ -133,9 +143,9 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	private _decorators: Map<string, any[]>;
 
 	/**
-	 * Internal factory registry
+	 * Factory registries
 	 */
-	protected registry: FactoryRegistry | undefined;
+	protected _registries: FactoryRegistry[];
 
 	/**
 	 * @constructor
@@ -160,6 +170,12 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 				propertiesChangedFunction.call(this, evt);
 			});
 		}));
+
+		this._registries = [ registry ];
+		const createRegistry = this.getDecorator('createRegistry');
+		if (createRegistry && createRegistry.length) {
+			this._registries = [ ...createRegistry, this._registries ];
+		}
 	}
 
 	public get properties(): Readonly<P> {
@@ -177,7 +193,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction }) => {
 			const previousProperty = this.previousProperties[propertyName];
 			const newProperty = (<any> properties)[propertyName];
-			const result: PropertyChangeRecord = diffFunction(previousProperty, newProperty);
+			const result: PropertyChangeRecord = diffFunction.apply(this, [ previousProperty, newProperty] );
 
 			if (!result) {
 				return;
@@ -314,16 +330,23 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	}
 
 	/**
-	 * Returns the factory from the registry for the specified label. First checks a local registry passed via
-	 * properties, if no local registry or the factory is not found fallback to the global registry
+	 * Returns the factory from the registry for the specified label. First checks a local registry on this
+	 * if no local registry or the factory is not found fallback to the global registry
 	 *
 	 * @param factoryLabel the label to look up in the registry
 	 */
 	private getFromRegistry(factoryLabel: string): Promise<WidgetConstructor> | WidgetConstructor | null {
-		if (this.registry && this.registry.has(factoryLabel)) {
-			return this.registry.get(factoryLabel);
+		for (let i = 0; i < this.registries.length; i++) {;
+			const registry = this.registries[i];
+			if (registry && registry.has(factoryLabel)) {
+				return registry.get(factoryLabel);
+			}
 		}
-		return registry.get(factoryLabel);
+		return null;
+	}
+
+	private get registries() {
+		return this._registries;
 	}
 
 	/**
