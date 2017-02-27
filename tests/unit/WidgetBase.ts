@@ -680,14 +680,20 @@ registerSuite({
 			@createRegistry({
 				'qux': TestNeverWidget
 			})
-			class Foo extends WidgetBase<any> {
+			class A extends WidgetBase<any> {
 			}
 
 			@createRegistry({
-				'foo': TestFooWidget,
+				'foo': TestNeverWidget,
 				'bar': TestBarWidget
 			})
-			class TestWidget extends Foo {
+			class B extends A {
+			}
+
+			@createRegistry({
+				'foo': TestFooWidget
+			})
+			class C extends B {
 				render() {
 					return v('div', [
 						w('foo', {}),
@@ -696,7 +702,7 @@ registerSuite({
 					]);
 				}
 			}
-			const myWidget: any = new TestWidget();
+			const myWidget: any = new C();
 
 			let result = <VNode> myWidget.__render__();
 			assert.lengthOf(result.children, 3);
