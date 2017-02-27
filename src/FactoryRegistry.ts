@@ -47,6 +47,9 @@ export interface FactoryRegistryInterface {
 	 */
 	has(factoryLabel: string): boolean;
 
+	/**
+	 * The size of the Registry
+	 */
 	size: number;
 }
 
