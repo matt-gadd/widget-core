@@ -46,6 +46,8 @@ export interface FactoryRegistryInterface {
 	 * @returns boolean indicating if a factory exists
 	 */
 	has(factoryLabel: string): boolean;
+
+	size: number;
 }
 
 /**
@@ -104,5 +106,9 @@ export default class FactoryRegistry implements FactoryRegistryInterface {
 		}, (error) => {
 			throw error;
 		});
+	}
+
+	get size() {
+		return this.registry.size;
 	}
 }

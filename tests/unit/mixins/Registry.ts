@@ -47,6 +47,16 @@ registerSuite({
 			instance.setProperties({ registry });
 			const [ , props ] = diffProps.firstCall.args;
 			assert.deepEqual(props, {});
+		},
+		'compares size of registry when diffing'() {
+			const registry = new FactoryRegistry();
+			registry.define('foo', TestWithRegistry);
+			const instance: any = new TestWithRegistry();
+			instance.setProperties({ registry });
+			instance.dirty = false;
+			registry.define('bar', TestWithRegistry);
+			instance.setProperties({ registry });
+			assert.isTrue(instance.dirty);
 		}
 	},
 	integration: {

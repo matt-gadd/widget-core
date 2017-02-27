@@ -13,14 +13,18 @@ export interface RegistryMixinProperties extends WidgetProperties {
 export function RegistryMixin<T extends Constructor<WidgetBase<RegistryMixinProperties>>>(base: T): T {
 	class Registry extends base {
 
+		factorySize: number | undefined;
+
 		@diffProperty('registry')
 		public diffPropertyRegistry(previousValue: FactoryRegistry, value: FactoryRegistry): PropertyChangeRecord {
-			const changed = previousValue !== value;
-			if (changed) {
+			const size = value ? value.size : undefined;
+			const same = previousValue === value && this.factorySize === size;
+			this.factorySize = size;
+			if (!same) {
 				const index = this._registries.indexOf(previousValue);
 				index > -1 ? this._registries[index] = value : this._registries.push(value);
 			}
-			return { changed, value };
+			return { changed: !same, value };
 		}
 	};
 	return Registry;
