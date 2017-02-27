@@ -1,9 +1,7 @@
-import { includes } from '@dojo/shim/array';
 import FactoryRegistry from '../FactoryRegistry';
-import { WidgetBase, onPropertiesChanged, diffProperty } from './../WidgetBase';
+import { WidgetBase, diffProperty } from './../WidgetBase';
 import {
 	PropertyChangeRecord,
-	PropertiesChangeEvent,
 	Constructor,
 	WidgetProperties
 } from '../interfaces';
@@ -21,20 +19,16 @@ export function RegistryMixin<T extends Constructor<WidgetBase<RegistryMixinProp
 			if (changed) {
 				const position = this._registries.indexOf(previousValue);
 				if (position > -1) {
-					this._registries.splice(position, 1);
+					this._registries[position] = value;
+				}
+				else {
+					this._registries.push(value);
 				}
 			}
 			return {
 				changed,
 				value
 			};
-		}
-
-		@onPropertiesChanged
-		protected onPropertiesChanged(evt: PropertiesChangeEvent<this, RegistryMixinProperties>) {
-			if (includes(evt.changedPropertyKeys, 'registry')) {
-				this._registries.push(evt.properties.registry);
-			}
 		}
 	};
 	return Registry;
