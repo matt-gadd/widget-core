@@ -345,7 +345,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		return null;
 	}
 
-	private get registries() {
+	protected get registries() {
 		return this._registries;
 	}
 
