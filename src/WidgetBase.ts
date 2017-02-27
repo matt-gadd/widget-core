@@ -330,8 +330,8 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	}
 
 	/**
-	 * Returns the factory from the registry for the specified label. First checks a local registry on this
-	 * if no local registry or the factory is not found fallback to the global registry
+	 * Returns the factory from the registry for the specified label. First checks local registries in last in
+	 * order first out order, before using the global registry last.
 	 *
 	 * @param factoryLabel the label to look up in the registry
 	 */
