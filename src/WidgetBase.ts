@@ -174,7 +174,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		this._registries = [ registry ];
 		const createRegistry = this.getDecorator('createRegistry');
 		if (createRegistry && createRegistry.length) {
-			this._registries = [ ...createRegistry, this._registries ];
+			this._registries = [ ...createRegistry, ...this._registries ];
 		}
 	}
 
