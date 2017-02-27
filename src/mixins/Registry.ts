@@ -13,7 +13,7 @@ export interface RegistryMixinProperties extends WidgetProperties {
 export function RegistryMixin<T extends Constructor<WidgetBase<RegistryMixinProperties>>>(base: T): T {
 	class Registry extends base {
 
-		factorySize: number | undefined;
+		private factorySize: number | undefined;
 
 		@diffProperty('registry')
 		public diffPropertyRegistry(previousValue: FactoryRegistry, value: FactoryRegistry): PropertyChangeRecord {
