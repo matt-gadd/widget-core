@@ -193,7 +193,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction }) => {
 			const previousProperty = this.previousProperties[propertyName];
 			const newProperty = (<any> properties)[propertyName];
-			const result: PropertyChangeRecord = diffFunction.apply(this, [ previousProperty, newProperty] );
+			const result: PropertyChangeRecord = diffFunction.apply(this, [ previousProperty, newProperty ]);
 
 			if (!result) {
 				return;
