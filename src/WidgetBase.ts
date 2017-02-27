@@ -174,7 +174,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		this._registries = [ registry ];
 		const createRegistry = this.getDecorator('createRegistry');
 		if (createRegistry && createRegistry.length) {
-			this._registries = [ ...createRegistry, ...this._registries ];
+			this._registries = [ ...createRegistry.reverse(), ...this._registries ];
 		}
 	}
 
@@ -330,8 +330,8 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	}
 
 	/**
-	 * Returns the factory from the registry for the specified label. First checks local registries in last in
-	 * order first out order, before using the global registry last.
+	 * Returns the factory from the registry for the specified label. First checks local registries in first in first out order,
+	 * before falling back to the global registry last.
 	 *
 	 * @param factoryLabel the label to look up in the registry
 	 */

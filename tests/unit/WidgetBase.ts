@@ -648,33 +648,61 @@ registerSuite({
 			assert.lengthOf(result.children, 1);
 			assert.strictEqual(result.children![0].vnodeSelector, 'header');
 		},
-		'render using scoped registries with stackable decorators'() {
-			class TestHeaderWidget extends WidgetBase<any> {
+		'render using scoped registries with declaration order'() {
+			class TestFooWidget extends WidgetBase<any> {
 				render() {
-					return v('header');
+					return v('foo');
+				}
+			}
+
+			class TestBarWidget extends WidgetBase<any> {
+				render() {
+					return v('bar');
+				}
+			}
+
+			class TestQuxWidget extends WidgetBase<any> {
+				render() {
+					return v('qux');
+				}
+			}
+
+			class TestNeverWidget extends WidgetBase<any> {
+				render() {
+					return v('never');
 				}
 			}
 
 			@createRegistry({
-				'foo': TestHeaderWidget
+				'bar': TestNeverWidget,
+				'qux': TestQuxWidget
 			})
 			@createRegistry({
-				'bar': TestHeaderWidget
+				'qux': TestNeverWidget
 			})
-			class TestWidget extends WidgetBase<any> {
+			class Foo extends WidgetBase<any> {
+			}
+
+			@createRegistry({
+				'foo': TestFooWidget,
+				'bar': TestBarWidget
+			})
+			class TestWidget extends Foo {
 				render() {
 					return v('div', [
 						w('foo', {}),
-						w('bar', {})
+						w('bar', {}),
+						w('qux', {})
 					]);
 				}
 			}
 			const myWidget: any = new TestWidget();
 
 			let result = <VNode> myWidget.__render__();
-			assert.lengthOf(result.children, 2);
-			assert.strictEqual(result.children![0].vnodeSelector, 'header');
-			assert.strictEqual(result.children![1].vnodeSelector, 'header');
+			assert.lengthOf(result.children, 3);
+			assert.strictEqual(result.children![0].vnodeSelector, 'foo');
+			assert.strictEqual(result.children![1].vnodeSelector, 'bar');
+			assert.strictEqual(result.children![2].vnodeSelector, 'qux');
 		},
 		'render with nested children'() {
 			class TestWidget extends WidgetBase<any> {
