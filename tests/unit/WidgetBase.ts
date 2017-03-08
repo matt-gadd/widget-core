@@ -5,8 +5,8 @@ import * as assert from 'intern/chai!assert';
 import { stub, spy } from 'sinon';
 import { v, w, registry } from '../../src/d';
 import { DNode } from '../../src/interfaces';
-import { WidgetBase, diffProperty, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
 import WidgetRegistry from './../../src/WidgetRegistry';
+import { WidgetBase, diffProperty, ignoreProperty, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
 
 registerSuite({
 	name: 'WidgetBase',
@@ -60,6 +60,48 @@ registerSuite({
 			const result = widgetBase.diffProperties({ id: 'id', foo: 'bar' }, properties);
 			assert.lengthOf(result.changedKeys, 4);
 			assert.deepEqual(result.changedKeys, [ 'foo', 'bar', 'baz', 'qux']);
+		}
+	},
+	ignoreProperty: {
+		decorator() {
+			let changedPropertyKeys;
+			let properties;
+
+			@ignoreProperty('foo')
+			@ignoreProperty('bar')
+			class TestWidget extends WidgetBase<any> {
+			}
+
+			const testWidget = new TestWidget();
+			testWidget.on('properties:changed', (evt) => {
+				changedPropertyKeys = evt.changedPropertyKeys;
+				properties = evt.properties;
+			});
+			testWidget.setProperties({ foo: 'foo', bar: 'bar', qux: 'qux' });
+			assert.deepEqual(changedPropertyKeys, [ 'qux' ]);
+			assert.deepEqual(properties, { foo: 'foo', bar: 'bar', qux: 'qux' });
+		},
+		'non-decorator'() {
+			let changedPropertyKeys;
+			let properties;
+
+			class TestWidget extends WidgetBase<any> {
+
+				constructor() {
+					super();
+					this.addDecorator('ignoreProperty', 'foo');
+					this.addDecorator('ignoreProperty', 'bar');
+				}
+			}
+
+			const testWidget = new TestWidget();
+			testWidget.on('properties:changed', (evt) => {
+				changedPropertyKeys = evt.changedPropertyKeys;
+				properties = evt.properties;
+			});
+			testWidget.setProperties({ foo: 'foo', bar: 'bar', qux: 'qux' });
+			assert.deepEqual(changedPropertyKeys, [ 'qux' ]);
+			assert.deepEqual(properties, { foo: 'foo', bar: 'bar', qux: 'qux' });
 		}
 	},
 	diffProperty: {

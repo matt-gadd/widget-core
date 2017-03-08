@@ -61,6 +61,15 @@ export function diffProperty(propertyName: string) {
 }
 
 /**
+ * Decorator that can be used to ignore a property from diffing
+ */
+export function ignoreProperty(propertyName: string) {
+	return function(constructor: Function) {
+		constructor.prototype.addDecorator('ignoreProperty', propertyName);
+	};
+}
+
+/**
  * Decorator used to register listeners to the `properties:changed` event.
  */
 export function onPropertiesChanged(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -189,6 +198,14 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 			delete (<any> properties)[propertyName];
 			delete this.previousProperties[propertyName];
 			diffPropertyResults[propertyName] = result.value;
+		});
+
+		const registeredIgnoreProperties: any[] = this.getDecorator('ignoreProperty') || [];
+
+		registeredIgnoreProperties.forEach((propertyName) => {
+			diffPropertyResults[propertyName] = (<any> properties)[propertyName];
+			delete (<any> properties)[propertyName];
+			delete this.previousProperties[propertyName];
 		});
 
 		const diffPropertiesResult = this.diffProperties(this.previousProperties, properties);
