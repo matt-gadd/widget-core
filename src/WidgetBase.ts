@@ -28,12 +28,17 @@ interface WidgetCacheWrapper {
 	used: boolean;
 }
 
+export const enum DiffType {
+	IGNORE = 1
+}
+
 /**
  * Diff property configuration
  */
 interface DiffPropertyConfig {
 	propertyName: string;
-	diffFunction: Function;
+	diffType?: DiffType;
+	diffFunction?: Function;
 }
 
 export interface WidgetBaseEvents<P extends WidgetProperties> extends BaseEventedEvents {
@@ -54,18 +59,14 @@ export function afterRender(target: any, propertyKey: string, descriptor: Proper
  *
  * @param propertyName The name of the property of which the diff function is applied
  */
-export function diffProperty(propertyName: string) {
-	return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-		target.addDecorator('diffProperty', { propertyName, diffFunction: target[propertyKey] });
-	};
-}
-
-/**
- * Decorator that can be used to ignore a property from diffing
- */
-export function ignoreProperty(propertyName: string) {
-	return function(constructor: Function) {
-		constructor.prototype.addDecorator('ignoreProperty', propertyName);
+export function diffProperty(propertyName: string, diffType?: DiffType) {
+	return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
+		if (diffType) {
+			target.prototype.addDecorator('diffProperty', { propertyName, diffType });
+		}
+		else if (propertyKey && descriptor) {
+			target.addDecorator('diffProperty', { propertyName, diffFunction: target[propertyKey] });
+		}
 	};
 }
 
@@ -183,29 +184,28 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 
 		const registeredDiffPropertyConfigs: DiffPropertyConfig[] = this.getDecorator('diffProperty') || [];
 
-		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction }) => {
+		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction, diffType }) => {
 			const previousProperty = this.previousProperties[propertyName];
 			const newProperty = (<any> properties)[propertyName];
-			const result: PropertyChangeRecord = diffFunction(previousProperty, newProperty);
-
-			if (!result) {
-				return;
+			if (diffType === DiffType.IGNORE) {
+				diffPropertyResults[propertyName] = (<any> properties)[propertyName];
+				delete (<any> properties)[propertyName];
+				delete this.previousProperties[propertyName];
 			}
+			else if (diffFunction) {
+				const result: PropertyChangeRecord = diffFunction(previousProperty, newProperty);
 
-			if (result.changed) {
-				diffPropertyChangedKeys.push(propertyName);
+				if (!result) {
+					return;
+				}
+
+				if (result.changed) {
+					diffPropertyChangedKeys.push(propertyName);
+				}
+				delete (<any> properties)[propertyName];
+				delete this.previousProperties[propertyName];
+				diffPropertyResults[propertyName] = result.value;
 			}
-			delete (<any> properties)[propertyName];
-			delete this.previousProperties[propertyName];
-			diffPropertyResults[propertyName] = result.value;
-		});
-
-		const registeredIgnoreProperties: any[] = this.getDecorator('ignoreProperty') || [];
-
-		registeredIgnoreProperties.forEach((propertyName) => {
-			diffPropertyResults[propertyName] = (<any> properties)[propertyName];
-			delete (<any> properties)[propertyName];
-			delete this.previousProperties[propertyName];
 		});
 
 		const diffPropertiesResult = this.diffProperties(this.previousProperties, properties);
