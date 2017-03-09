@@ -31,7 +31,8 @@ interface WidgetCacheWrapper {
 export const enum DiffType {
 	CUSTOM = 1,
 	IGNORE,
-	REFERENCE
+	REFERENCE,
+	SHALLOW
 }
 
 /**
@@ -202,9 +203,9 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 						diffPropertyChangedKeys.push(propertyName);
 					}
 
+					diffPropertyResults[propertyName] = result.value;
 					delete (<any> properties)[propertyName];
 					delete this.previousProperties[propertyName];
-					diffPropertyResults[propertyName] = result.value;
 					break;
 
 				case DiffType.IGNORE:
@@ -217,11 +218,27 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 					if (previousProperty !== newProperty) {
 						diffPropertyChangedKeys.push(propertyName);
 					}
+					diffPropertyResults[propertyName] = newProperty;
 					delete (<any> properties)[propertyName];
 					delete this.previousProperties[propertyName];
-					diffPropertyResults[propertyName] = newProperty;
 					break;
 
+				case DiffType.SHALLOW:
+					if (previousProperty.length !== newProperty.length) {
+						diffPropertyChangedKeys.push(propertyName);
+					}
+					else {
+						const changed = Object.keys(newProperty).some((key) => {
+							return newProperty[key] !== previousProperty[key];
+						});
+						if (changed) {
+							diffPropertyChangedKeys.push(propertyName);
+						}
+					}
+					diffPropertyResults[propertyName] = newProperty;
+					delete (<any> properties)[propertyName];
+					delete this.previousProperties[propertyName];
+					break;
 			}
 		});
 
