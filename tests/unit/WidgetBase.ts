@@ -97,8 +97,14 @@ registerSuite({
 
 				constructor() {
 					super();
-					this.addDecorator('diffProperty', { propertyName: 'foo', diffType: DiffType.IGNORE });
-					this.addDecorator('diffProperty', { propertyName: 'bar', diffType: DiffType.IGNORE });
+					this.addDecorator('diffProperty', {
+						propertyName: 'foo',
+						diffType: DiffType.IGNORE
+					});
+					this.addDecorator('diffProperty', {
+						propertyName: 'bar',
+						diffType: DiffType.IGNORE
+					});
 				}
 			}
 
