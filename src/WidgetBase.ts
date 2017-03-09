@@ -190,55 +190,48 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction, diffType }) => {
 			const previousProperty = this.previousProperties[propertyName];
 			const newProperty = (<any> properties)[propertyName];
+			let changed;
+			let value;
 			switch (diffType) {
-
 				case DiffType.CUSTOM:
 					const result: PropertyChangeRecord = diffFunction && diffFunction(previousProperty, newProperty);
-
-					if (!result) {
-						return;
+					if (result) {
+						changed = result.changed;
+						value = result.value;
 					}
-
-					if (result.changed) {
-						diffPropertyChangedKeys.push(propertyName);
-					}
-
-					diffPropertyResults[propertyName] = result.value;
-					delete (<any> properties)[propertyName];
-					delete this.previousProperties[propertyName];
 					break;
-
 				case DiffType.IGNORE:
-					diffPropertyResults[propertyName] = newProperty;
-					delete (<any> properties)[propertyName];
-					delete this.previousProperties[propertyName];
+					value = newProperty;
 					break;
-
 				case DiffType.REFERENCE:
 					if (previousProperty !== newProperty) {
-						diffPropertyChangedKeys.push(propertyName);
+						changed = true;
+						value = newProperty;
 					}
-					diffPropertyResults[propertyName] = newProperty;
-					delete (<any> properties)[propertyName];
-					delete this.previousProperties[propertyName];
 					break;
-
 				case DiffType.SHALLOW:
 					if (previousProperty.length !== newProperty.length) {
-						diffPropertyChangedKeys.push(propertyName);
+						changed = true;
+						value = newProperty;
 					}
 					else {
-						const changed = Object.keys(newProperty).some((key) => {
+						const diff = Object.keys(newProperty).some((key) => {
 							return newProperty[key] !== previousProperty[key];
 						});
-						if (changed) {
-							diffPropertyChangedKeys.push(propertyName);
+						if (diff) {
+							changed = diff;
+							value = newProperty;
 						}
 					}
-					diffPropertyResults[propertyName] = newProperty;
-					delete (<any> properties)[propertyName];
-					delete this.previousProperties[propertyName];
 					break;
+			}
+			if (value !== undefined) {
+				diffPropertyResults[propertyName] = newProperty;
+				delete (<any> properties)[propertyName];
+				delete this.previousProperties[propertyName];
+			}
+			if (changed) {
+				diffPropertyChangedKeys.push(propertyName);
 			}
 		});
 
