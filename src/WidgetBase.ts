@@ -29,7 +29,8 @@ interface WidgetCacheWrapper {
 }
 
 export const enum DiffType {
-	IGNORE = 1
+	CUSTOM = 1,
+	IGNORE
 }
 
 /**
@@ -59,13 +60,13 @@ export function afterRender(target: any, propertyKey: string, descriptor: Proper
  *
  * @param propertyName The name of the property of which the diff function is applied
  */
-export function diffProperty(propertyName: string, diffType?: DiffType) {
+export function diffProperty(propertyName: string, diffType = DiffType.CUSTOM) {
 	return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-		if (diffType) {
-			target.prototype.addDecorator('diffProperty', { propertyName, diffType });
-		}
-		else if (propertyKey && descriptor) {
+		if (diffType === DiffType.CUSTOM && propertyKey && descriptor) {
 			target.addDecorator('diffProperty', { propertyName, diffFunction: target[propertyKey] });
+		}
+		else if (diffType && !propertyKey && !descriptor) {
+			target.prototype.addDecorator('diffProperty', { propertyName, diffType });
 		}
 	};
 }
