@@ -141,7 +141,11 @@ registerSuite({
 
 				constructor() {
 					super();
-					this.addDecorator('diffProperty', { propertyName: 'foo', diffFunction: this.diffPropertyFoo });
+					this.addDecorator('diffProperty', {
+						propertyName: 'foo',
+						diffType: DiffType.CUSTOM,
+						diffFunction: this.diffPropertyFoo
+					});
 				}
 
 				diffPropertyFoo(this: any, previousProperty: any, newProperty: any): any {

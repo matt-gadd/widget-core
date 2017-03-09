@@ -30,7 +30,8 @@ interface WidgetCacheWrapper {
 
 export const enum DiffType {
 	CUSTOM = 1,
-	IGNORE
+	IGNORE,
+	REFERENCE
 }
 
 /**
@@ -38,7 +39,7 @@ export const enum DiffType {
  */
 interface DiffPropertyConfig {
 	propertyName: string;
-	diffType?: DiffType;
+	diffType: DiffType;
 	diffFunction?: Function;
 }
 
@@ -63,7 +64,7 @@ export function afterRender(target: any, propertyKey: string, descriptor: Proper
 export function diffProperty(propertyName: string, diffType = DiffType.CUSTOM) {
 	return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
 		if (diffType === DiffType.CUSTOM && propertyKey && descriptor) {
-			target.addDecorator('diffProperty', { propertyName, diffFunction: target[propertyKey] });
+			target.addDecorator('diffProperty', { propertyName, diffType, diffFunction: target[propertyKey] });
 		}
 		else if (diffType && !propertyKey && !descriptor) {
 			target.prototype.addDecorator('diffProperty', { propertyName, diffType });
@@ -188,24 +189,39 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction, diffType }) => {
 			const previousProperty = this.previousProperties[propertyName];
 			const newProperty = (<any> properties)[propertyName];
-			if (diffType === DiffType.IGNORE) {
-				diffPropertyResults[propertyName] = (<any> properties)[propertyName];
-				delete (<any> properties)[propertyName];
-				delete this.previousProperties[propertyName];
-			}
-			else if (diffFunction) {
-				const result: PropertyChangeRecord = diffFunction(previousProperty, newProperty);
+			switch (diffType) {
 
-				if (!result) {
-					return;
-				}
+				case DiffType.CUSTOM:
+					const result: PropertyChangeRecord = diffFunction && diffFunction(previousProperty, newProperty);
 
-				if (result.changed) {
-					diffPropertyChangedKeys.push(propertyName);
-				}
-				delete (<any> properties)[propertyName];
-				delete this.previousProperties[propertyName];
-				diffPropertyResults[propertyName] = result.value;
+					if (!result) {
+						return;
+					}
+
+					if (result.changed) {
+						diffPropertyChangedKeys.push(propertyName);
+					}
+
+					delete (<any> properties)[propertyName];
+					delete this.previousProperties[propertyName];
+					diffPropertyResults[propertyName] = result.value;
+					break;
+
+				case DiffType.IGNORE:
+					diffPropertyResults[propertyName] = newProperty;
+					delete (<any> properties)[propertyName];
+					delete this.previousProperties[propertyName];
+					break;
+
+				case DiffType.REFERENCE:
+					if (previousProperty !== newProperty) {
+						diffPropertyChangedKeys.push(propertyName);
+					}
+					delete (<any> properties)[propertyName];
+					delete this.previousProperties[propertyName];
+					diffPropertyResults[propertyName] = newProperty;
+					break;
+
 			}
 		});
 
