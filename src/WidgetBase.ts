@@ -32,7 +32,8 @@ export const enum DiffType {
 	CUSTOM = 1,
 	IGNORE,
 	REFERENCE,
-	SHALLOW
+	SHALLOW,
+	AUTO
 }
 
 /**
@@ -80,6 +81,10 @@ export function onPropertiesChanged(target: any, propertyKey: string, descriptor
 	target.addDecorator('onPropertiesChanged', target[propertyKey]);
 }
 
+function isObject(value: any) {
+	return Object.prototype.toString.call(value) === '[object Object]';
+}
+
 function diffIgnore(previousProperty: any, newProperty: any): PropertyChangeRecord {
 	return {
 		changed: false,
@@ -107,8 +112,8 @@ function diffReference(previousProperty: any, newProperty: any): PropertyChangeR
 function diffShallow(previousProperty: any, newProperty: any): PropertyChangeRecord {
 	let changed = false;
 
-	const validOldProperty = previousProperty && typeof previousProperty === 'object';
-	const validNewProperty = newProperty && typeof newProperty === 'object';
+	const validOldProperty = previousProperty && isObject(previousProperty);
+	const validNewProperty = newProperty && isObject(newProperty);
 
 	if (!validOldProperty || !validNewProperty) {
 		return {
@@ -260,6 +265,17 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 					break;
 				case DiffType.SHALLOW:
 					result = diffShallow(previousProperty, newProperty);
+					break;
+				case DiffType.AUTO:
+						if (typeof newProperty === 'function') {
+						result = diffIgnore(previousProperty, newProperty);
+					}
+					else if (isObject(newProperty)) {
+						result = diffShallow(previousProperty, newProperty);
+					}
+					else {
+						result = diffReference(previousProperty, newProperty);
+					}
 					break;
 				default:
 					return;
