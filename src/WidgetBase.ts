@@ -87,14 +87,14 @@ function diffIgnore(previousProperty: any, newProperty: any): PropertyChangeReco
 	};
 }
 
-function diffCustom(previousProperty: any, newProperty: any, diffFunction?: Function): PropertyChangeRecord {
+function diffCustom(previousProperty: any, newProperty: any, scope: any, diffFunction?: Function): PropertyChangeRecord {
 	if (!diffFunction) {
 		return {
 			changed: false,
 			value: newProperty
 		};
 	}
-	return diffFunction(previousProperty, newProperty);
+	return diffFunction.call(scope, previousProperty, newProperty);
 }
 
 function diffReference(previousProperty: any, newProperty: any): PropertyChangeRecord {
@@ -250,7 +250,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 
 			switch (diffType) {
 				case DiffType.CUSTOM:
-					result = diffCustom(previousProperty, newProperty, diffFunction);
+					result = diffCustom(previousProperty, newProperty, this, diffFunction);
 					break;
 				case DiffType.IGNORE:
 					result = diffIgnore(previousProperty, newProperty);
