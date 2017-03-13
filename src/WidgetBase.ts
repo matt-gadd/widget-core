@@ -80,6 +80,46 @@ export function onPropertiesChanged(target: any, propertyKey: string, descriptor
 	target.addDecorator('onPropertiesChanged', target[propertyKey]);
 }
 
+function diffIgnore(previousProperty: any, newProperty: any): PropertyChangeRecord {
+	return {
+		changed: false,
+		value: newProperty
+	};
+}
+
+function diffCustom(previousProperty: any, newProperty: any, diffFunction?: Function): PropertyChangeRecord {
+	if (!diffFunction) {
+		return {
+			changed: false,
+			value: newProperty
+		};
+	}
+	return diffFunction(previousProperty, newProperty);
+}
+
+function diffReference(previousProperty: any, newProperty: any): PropertyChangeRecord {
+	return {
+		changed: previousProperty !== newProperty,
+		value: newProperty
+	};
+}
+
+function diffShallow(previousProperty: any, newProperty: any): PropertyChangeRecord {
+	let changed = false;
+	if (!previousProperty || previousProperty.length !== newProperty.length) {
+		changed = true;
+	}
+	else {
+		changed = Object.keys(newProperty).some((key) => {
+			return newProperty[key] !== previousProperty[key];
+		});
+	}
+	return {
+		changed,
+		value: newProperty
+	};
+}
+
 /**
  * Main widget base for all widgets to extend
  */
@@ -188,54 +228,38 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		const registeredDiffPropertyConfigs: DiffPropertyConfig[] = this.getDecorator('diffProperty') || [];
 
 		registeredDiffPropertyConfigs.forEach(({ propertyName, diffFunction, diffType }) => {
+
 			const previousProperty = this.previousProperties[propertyName];
 			const newProperty = (<any> properties)[propertyName];
-			let changed;
-			let value;
+
+			let result;
+
 			switch (diffType) {
 				case DiffType.CUSTOM:
-					const result: PropertyChangeRecord = diffFunction && diffFunction(previousProperty, newProperty);
-					if (result) {
-						changed = result.changed;
-						value = result.value;
-					}
+					result = diffCustom(previousProperty, newProperty, diffFunction);
 					break;
 				case DiffType.IGNORE:
-					value = newProperty;
+					result = diffIgnore(previousProperty, newProperty);
 					break;
 				case DiffType.REFERENCE:
-					if (previousProperty !== newProperty) {
-						changed = true;
-						value = newProperty;
-					}
+					result = diffReference(previousProperty, newProperty);
 					break;
 				case DiffType.SHALLOW:
-					if (previousProperty && previousProperty.length !== newProperty.length) {
-						changed = true;
-						value = newProperty;
-					}
-					else {
-						const diff = Object.keys(newProperty).some((key) => {
-							if (!previousProperty) {
-								return true;
-							}
-							return newProperty[key] !== previousProperty[key];
-						});
-						if (diff) {
-							changed = diff;
-							value = newProperty;
-						}
-					}
+					result = diffShallow(previousProperty, newProperty);
 					break;
+				default:
+					return;
 			}
-			delete (<any> properties)[propertyName];
-			delete this.previousProperties[propertyName];
-			if (value !== undefined) {
-				diffPropertyResults[propertyName] = newProperty;
-			}
-			if (changed) {
+
+			diffPropertyResults[propertyName] = result.value;
+
+			if (result.changed) {
 				diffPropertyChangedKeys.push(propertyName);
 			}
+
+			// always remove the property from further processing;
+			delete (<any> properties)[propertyName];
+			delete this.previousProperties[propertyName];
 		});
 
 		const diffPropertiesResult = this.diffProperties(this.previousProperties, properties);

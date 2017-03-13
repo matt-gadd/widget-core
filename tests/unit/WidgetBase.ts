@@ -297,24 +297,6 @@ registerSuite({
 
 			widget.setProperties({ foo: 'bar', baz: 'bar' });
 		},
-		'uses base diff when an individual property diff returns null'() {
-			class TestWidget extends WidgetBase<any> {
-
-				@diffProperty('foo')
-				diffPropertyFoo(this: any, previousProperty: any, newProperty: any): any {
-					return null;
-				}
-			}
-
-			const widget: any = new TestWidget();
-			widget.setProperties({ foo: 'bar' });
-
-			widget.on('properties:changed', (event: any) => {
-				assert.include(event.changedPropertyKeys, 'foo');
-			});
-
-			widget.setProperties({ foo: 'baz' });
-		},
 		'widgets function properties are bound to the parent by default'() {
 			class TestChildWidget extends WidgetBase<any> {
 				render() {
