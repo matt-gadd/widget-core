@@ -106,11 +106,25 @@ function diffReference(previousProperty: any, newProperty: any): PropertyChangeR
 
 function diffShallow(previousProperty: any, newProperty: any): PropertyChangeRecord {
 	let changed = false;
-	if (!previousProperty || previousProperty.length !== newProperty.length) {
+
+	const validOldProperty = previousProperty && typeof previousProperty === 'object';
+	const validNewProperty = newProperty && typeof newProperty === 'object';
+
+	if (!validOldProperty || !validNewProperty) {
+		return {
+			changed: true,
+			value: newProperty
+		};
+	}
+
+	const previousKeys = Object.keys(previousProperty);
+	const newKeys = Object.keys(newProperty);
+
+	if (previousKeys.length !== newKeys.length) {
 		changed = true;
 	}
 	else {
-		changed = Object.keys(newProperty).some((key) => {
+		changed = newKeys.some((key) => {
 			return newProperty[key] !== previousProperty[key];
 		});
 	}
