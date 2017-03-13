@@ -5,16 +5,8 @@ import * as assert from 'intern/chai!assert';
 import { stub, spy } from 'sinon';
 import { v, w, registry } from '../../src/d';
 import { DNode } from '../../src/interfaces';
-<<<<<<< 142e597c042181f9401c3acf88d345c4012d2f2d
 import WidgetRegistry from './../../src/WidgetRegistry';
-import { WidgetBase, diffProperty, ignoreProperty, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
-=======
 import { WidgetBase, diffProperty, DiffType, afterRender, onPropertiesChanged } from '../../src/WidgetBase';
-import { VNode } from '@dojo/interfaces/vdom';
-import { v, w, registry } from '../../src/d';
-import { stub } from 'sinon';
-import FactoryRegistry from './../../src/FactoryRegistry';
->>>>>>> overload diffProperty instead, use enum for diff type
 
 registerSuite({
 	name: 'WidgetBase',
