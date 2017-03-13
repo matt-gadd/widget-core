@@ -81,8 +81,8 @@ export function onPropertiesChanged(target: any, propertyKey: string, descriptor
 	target.addDecorator('onPropertiesChanged', target[propertyKey]);
 }
 
-function isObject(value: any) {
-	return Object.prototype.toString.call(value) === '[object Object]';
+function isObjectOrArray(value: any): boolean {
+	return Object.prototype.toString.call(value) === '[object Object]' || Array.isArray(value);
 }
 
 function diffIgnore(previousProperty: any, newProperty: any): PropertyChangeRecord {
@@ -112,8 +112,8 @@ function diffReference(previousProperty: any, newProperty: any): PropertyChangeR
 function diffShallow(previousProperty: any, newProperty: any): PropertyChangeRecord {
 	let changed = false;
 
-	const validOldProperty = previousProperty && isObject(previousProperty);
-	const validNewProperty = newProperty && isObject(newProperty);
+	const validOldProperty = previousProperty && isObjectOrArray(previousProperty);
+	const validNewProperty = newProperty && isObjectOrArray(newProperty);
 
 	if (!validOldProperty || !validNewProperty) {
 		return {
@@ -155,7 +155,7 @@ function diff(diffType: DiffType, previousProperty: any, newProperty: any) {
 			if (typeof newProperty === 'function') {
 				result = diffIgnore(previousProperty, newProperty);
 			}
-			else if (isObject(newProperty)) {
+			else if (isObjectOrArray(newProperty)) {
 				result = diffShallow(previousProperty, newProperty);
 			}
 			else {
