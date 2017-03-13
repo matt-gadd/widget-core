@@ -139,6 +139,38 @@ function diffShallow(previousProperty: any, newProperty: any): PropertyChangeRec
 	};
 }
 
+function diff(diffType: DiffType, previousProperty: any, newProperty: any) {
+	let result;
+	switch (diffType) {
+		case DiffType.IGNORE:
+			result = diffIgnore(previousProperty, newProperty);
+		break;
+		case DiffType.REFERENCE:
+			result = diffReference(previousProperty, newProperty);
+		break;
+		case DiffType.SHALLOW:
+			result = diffShallow(previousProperty, newProperty);
+		break;
+		case DiffType.AUTO:
+			if (typeof newProperty === 'function') {
+				result = diffIgnore(previousProperty, newProperty);
+			}
+			else if (isObject(newProperty)) {
+				result = diffShallow(previousProperty, newProperty);
+			}
+			else {
+				result = diffReference(previousProperty, newProperty);
+			}
+		break;
+		default:
+			result = {
+				changed: true,
+				value: newProperty
+			};
+	}
+	return result;
+}
+
 /**
  * Main widget base for all widgets to extend
  */
@@ -253,32 +285,11 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 
 			let result;
 
-			switch (diffType) {
-				case DiffType.CUSTOM:
-					result = diffCustom(previousProperty, newProperty, this, diffFunction);
-					break;
-				case DiffType.IGNORE:
-					result = diffIgnore(previousProperty, newProperty);
-					break;
-				case DiffType.REFERENCE:
-					result = diffReference(previousProperty, newProperty);
-					break;
-				case DiffType.SHALLOW:
-					result = diffShallow(previousProperty, newProperty);
-					break;
-				case DiffType.AUTO:
-						if (typeof newProperty === 'function') {
-						result = diffIgnore(previousProperty, newProperty);
-					}
-					else if (isObject(newProperty)) {
-						result = diffShallow(previousProperty, newProperty);
-					}
-					else {
-						result = diffReference(previousProperty, newProperty);
-					}
-					break;
-				default:
-					return;
+			if (diffType === DiffType.CUSTOM) {
+				result = diffCustom(previousProperty, newProperty, this, diffFunction);
+			}
+			else {
+				result = diff(diffType, previousProperty, newProperty);
 			}
 
 			diffPropertyResults[propertyName] = result.value;
@@ -322,14 +333,14 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	}
 
 	public diffProperties(previousProperties: P & { [index: string]: any }, newProperties: P & { [index: string]: any }): PropertiesChangeRecord<P> {
-		const changedKeys = Object.keys(newProperties).reduce((changedPropertyKeys: string[], propertyKey: string): string[] => {
-			if (previousProperties[propertyKey] !== newProperties[propertyKey]) {
-				changedPropertyKeys.push(propertyKey);
+		return Object.keys(newProperties).reduce((propertiesChangeRecord: any, propertyKey: string): PropertiesChangeRecord<P> => {
+			const result = diff(DiffType.AUTO, previousProperties[propertyKey], newProperties[propertyKey]);
+			if (result.changed) {
+				propertiesChangeRecord.changedKeys.push(propertyKey);
 			}
-			return changedPropertyKeys;
-		}, []);
-
-		return { changedKeys, properties: assign({}, newProperties) };
+			propertiesChangeRecord.properties[propertyKey] = result.value;
+			return propertiesChangeRecord;
+		}, { changedKeys: [], properties: {} });
 	}
 
 	public render(): DNode {
