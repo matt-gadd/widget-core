@@ -210,12 +210,15 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 					}
 					break;
 				case DiffType.SHALLOW:
-					if (previousProperty.length !== newProperty.length) {
+					if (previousProperty && previousProperty.length !== newProperty.length) {
 						changed = true;
 						value = newProperty;
 					}
 					else {
 						const diff = Object.keys(newProperty).some((key) => {
+							if (!previousProperty) {
+								return true;
+							}
 							return newProperty[key] !== previousProperty[key];
 						});
 						if (diff) {
@@ -225,10 +228,10 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 					}
 					break;
 			}
+			delete (<any> properties)[propertyName];
+			delete this.previousProperties[propertyName];
 			if (value !== undefined) {
 				diffPropertyResults[propertyName] = newProperty;
-				delete (<any> properties)[propertyName];
-				delete this.previousProperties[propertyName];
 			}
 			if (changed) {
 				diffPropertyChangedKeys.push(propertyName);
