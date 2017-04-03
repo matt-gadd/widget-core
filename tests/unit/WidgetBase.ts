@@ -744,6 +744,36 @@ widget.setProperties({
 				});
 			});
 		},
+		'render with deferred define factory'() {
+			class TestWidget extends WidgetBase<any> {
+				render() {
+					return v('div', [
+						w('my-header2', <any> undefined)
+					]);
+				}
+			}
+
+			class TestHeaderWidget extends WidgetBase<any> {
+				render() {
+					return v('header');
+				}
+			}
+
+			const myWidget: any = new TestWidget();
+			const result = <VNode> myWidget.__render__();
+			assert.lengthOf(result.children, 0);
+
+			registry.define('my-header2', TestHeaderWidget);
+
+			return new Promise((resolve) => {
+				myWidget.on('invalidated', () => {
+					result = <VNode> myWidget.__render__();
+					assert.lengthOf(result.children, 1);
+					assert.strictEqual(result.children![0].vnodeSelector, 'header');
+					resolve();
+				});
+			});
+		},
 		'render using scoped factory registry'() {
 			class TestHeaderWidget extends WidgetBase<any> {
 				render() {

@@ -50,10 +50,13 @@ registerSuite({
 			const factory = factoryRegistry.get('my-widget');
 			assert.strictEqual(factory, WidgetBase);
 		},
-		'throws an error if factory has not been registered.'() {
+		'can get a registry before it has been defined'() {
 			const factoryRegistry = new WidgetRegistry();
-			const item = factoryRegistry.get('my-widget');
-			assert.isNull(item);
+			const promise = <Promise<any>> factoryRegistry.get('my-widget');
+			factoryRegistry.define('my-widget', WidgetBase);
+			return promise.then((factory) => {
+				assert.strictEqual(factory, WidgetBase);
+			});
 		},
 		'replaces promise with result on resolution'() {
 			let resolveFunction: any;
