@@ -744,24 +744,6 @@ widget.setProperties({
 				});
 			});
 		},
-		'warn for unknown factory registry'() {
-			const factory = 'unknown-entry';
-			class TestWidget extends WidgetBase<any> {
-				render() {
-					return v('div', [
-						w(factory, {})
-					]);
-				}
-			}
-
-			const myWidget: any = new TestWidget();
-			const consoleStub = stub(console, 'warn');
-			let result = <VNode> myWidget.__render__();
-			assert.lengthOf(result.children, 0);
-			assert.isTrue(consoleStub.calledOnce);
-			assert.isTrue(consoleStub.calledWith(`Unable to render unknown widget constructor ${factory}`));
-			consoleStub.restore();
-		},
 		'render using scoped factory registry'() {
 			class TestHeaderWidget extends WidgetBase<any> {
 				render() {

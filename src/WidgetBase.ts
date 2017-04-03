@@ -488,10 +488,23 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 * @param widgetLabel the label to look up in the registry
 	 */
 	private getFromRegistry(widgetLabel: string): Promise<WidgetConstructor> | WidgetConstructor | null {
+		const promises = [];
 		if (this.registry && this.registry.has(widgetLabel)) {
-			return this.registry.get(widgetLabel);
+			const localResult = this.registry.get(widgetLabel);
+			if (localResult instanceof Promise) {
+				promises.push(localResult);
+			} else {
+				return localResult;
+			}
 		}
-		return registry.get(widgetLabel);
+		const globalResult = registry.get(widgetLabel);
+		if (globalResult instanceof Promise) {
+			promises.push(globalResult);
+		}
+		else {
+			return globalResult;
+		}
+		return Promise.race(promises);
 	}
 
 	/**

@@ -7,6 +7,13 @@ export type WidgetConstructorFunction = () => Promise<WidgetConstructor>;
 
 export type WidgetRegistryItem = WidgetConstructor | Promise<WidgetConstructor> | WidgetConstructorFunction;
 
+interface InternalRegistryItem {
+	item?: WidgetRegistryItem;
+	resolver?: Function;
+	promise?: Promise<any>;
+	pending: boolean;
+}
+
 /**
  * Widget base symbol type
  */
@@ -31,7 +38,7 @@ export interface WidgetRegistry {
 	 * @param widgetLabel The label of the widget to return
 	 * @returns The WidgetRegistryItem for the widgetLabel, `null` if no entry exists
 	 */
-	get(widgetLabel: string): WidgetConstructor | Promise<WidgetConstructor> | null;
+	get(widgetLabel: string): WidgetConstructor | Promise<WidgetConstructor>;
 
 	/**
 	 * Returns a boolean if an entry for the label exists
@@ -57,47 +64,63 @@ export function isWidgetBaseConstructor(item: any): item is WidgetConstructor {
  */
 export class WidgetRegistry implements WidgetRegistry {
 
-	/**
-	 * internal map of labels and WidgetRegistryItem
-	 */
-	private registry: Map<string, WidgetRegistryItem>;
+	private registry: Map<string, InternalRegistryItem>;
 
 	constructor() {
-		this.registry = new Map<string, WidgetRegistryItem>();
+		this.registry = new Map<string, InternalRegistryItem>();
+	}
+
+	private resolve(widgetLabel: string, ctor: WidgetConstructor) {
+		const internalItem = this.registry.get(widgetLabel) || { pending: false };
+		const { resolver, promise } = internalItem;
+		this.registry.set(widgetLabel, { item: ctor, resolver, promise, pending: false });
+		resolver && resolver(ctor);
 	}
 
 	has(widgetLabel: string): boolean {
-		return this.registry.has(widgetLabel);
+		const registryItem = this.registry.get(widgetLabel);
+		return !!(registryItem && registryItem.item);
 	}
 
 	define(widgetLabel: string, registryItem: WidgetRegistryItem): void {
-		if (this.registry.has(widgetLabel)) {
+		const internalItem = this.registry.get(widgetLabel) || { pending: true };
+		const { item, resolver, promise, pending } = internalItem;
+
+		if (item) {
 			throw new Error(`widget has already been registered for '${widgetLabel}'`);
 		}
-		this.registry.set(widgetLabel, registryItem);
+		else if (isWidgetBaseConstructor(registryItem)) {
+			this.resolve(widgetLabel, registryItem);
+		}
+		else if (registryItem instanceof Promise) {
+			registryItem.then((widgetCtor) => {
+				this.resolve(widgetLabel, widgetCtor);
+			});
+		}
+		this.registry.set(widgetLabel, { item: registryItem, resolver, promise, pending });
 	}
 
-	get(widgetLabel: string): WidgetConstructor | Promise<WidgetConstructor> | null {
-		if (!this.has(widgetLabel)) {
-			return null;
-		}
+	get(widgetLabel: string): WidgetConstructor | Promise<WidgetConstructor> {
+		const internalItem = this.registry.get(widgetLabel) || { pending: true };
+		let { item, promise, resolver, pending } = internalItem;
 
-		const item = this.registry.get(widgetLabel);
-
-		if (item instanceof Promise || isWidgetBaseConstructor(item)) {
+		if (item && isWidgetBaseConstructor(item)) {
 			return item;
 		}
+		else if (typeof item === 'function') {
+			item = item();
+			item.then((widgetCtor) => {
+				this.resolve(widgetLabel, widgetCtor);
+			});
+		}
 
-		const promise = (<WidgetConstructorFunction> item)();
-
-		this.registry.set(widgetLabel, promise);
-
-		return promise.then((widgetCtor) => {
-			this.registry.set(widgetLabel, widgetCtor);
-			return widgetCtor;
-		}, (error) => {
-			throw error;
-		});
+		if (!promise) {
+			promise = new Promise((resolve) => {
+				resolver = resolve;
+			});
+		}
+		this.registry.set(widgetLabel, { item, promise, resolver, pending });
+		return promise;
 	}
 }
 
