@@ -188,9 +188,9 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 */
 	private _renderDecorators: Set<string>;
 
-	private localHandle: any;
+	private _localRegistryHandle: any;
 
-	private globalHandle: any;
+	private _globalRegistryHandle: any;
 
 	/**
 	 * Map of functions properties for the bound function
@@ -497,11 +497,11 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 			if (local) {
 				return local;
 			}
-			else if (!this.localHandle) {
-				this.localHandle = this.registry.on(`loaded:${widgetLabel}`, () => {
+			else if (!this._localRegistryHandle) {
+				this._localRegistryHandle = this.registry.on(`loaded:${widgetLabel}`, () => {
 					this.invalidate();
-					this.localHandle.destroy();
-					this.localHandle = undefined;
+					this._localRegistryHandle.destroy();
+					this._localRegistryHandle = undefined;
 				});
 			}
 		}
@@ -509,11 +509,11 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		if (global) {
 			return global;
 		}
-		else if (!this.globalHandle) {
-			this.globalHandle = registry.on(`loaded:${widgetLabel}`, () => {
+		else if (!this._globalRegistryHandle) {
+			this._globalRegistryHandle = registry.on(`loaded:${widgetLabel}`, () => {
 				this.invalidate();
-				this.globalHandle.destroy();
-				this.globalHandle = undefined;
+				this._globalRegistryHandle.destroy();
+				this._globalRegistryHandle = undefined;
 			});
 		}
 		return null;
