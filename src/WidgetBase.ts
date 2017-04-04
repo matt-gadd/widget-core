@@ -188,6 +188,10 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 */
 	private _renderDecorators: Set<string>;
 
+	private localHandle: any;
+
+	private globalHandle: any;
+
 	/**
 	 * Map of functions properties for the bound function
 	 */
@@ -487,11 +491,32 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 *
 	 * @param widgetLabel the label to look up in the registry
 	 */
-	private getFromRegistry(widgetLabel: string): Promise<WidgetConstructor> | WidgetConstructor | null {
-		if (this.registry && this.registry.has(widgetLabel)) {
-			return this.registry.get(widgetLabel);
+	private getFromRegistry(widgetLabel: string): WidgetConstructor | null {
+		if (this.registry) {
+			const local = this.registry.get(widgetLabel);
+			if (local) {
+				return local;
+			}
+			else if (!this.localHandle) {
+				this.localHandle = this.registry.on(`loaded:${widgetLabel}`, () => {
+					this.invalidate();
+					this.localHandle.destroy();
+					this.localHandle = undefined;
+				});
+			}
 		}
-		return registry.get(widgetLabel);
+		const global = registry.get(widgetLabel);
+		if (global) {
+			return global;
+		}
+		else if (!this.globalHandle) {
+			this.globalHandle = registry.on(`loaded:${widgetLabel}`, () => {
+				this.invalidate();
+				this.globalHandle.destroy();
+				this.globalHandle = undefined;
+			});
+		}
+		return null;
 	}
 
 	/**
@@ -515,19 +540,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 
 			if (typeof widgetConstructor === 'string') {
 				const item = this.getFromRegistry(widgetConstructor);
-
-				if (item instanceof Promise) {
-					if (item && !this._initializedConstructorMap.has(widgetConstructor)) {
-						const promise = item.then((ctor) => {
-							this.invalidate();
-							return ctor;
-						});
-						this._initializedConstructorMap.set(widgetConstructor, promise);
-					}
-					return null;
-				}
-				else if (item === null) {
-					console.warn(`Unable to render unknown widget constructor ${widgetConstructor}`);
+				if (item === null) {
 					return null;
 				}
 				widgetConstructor = item;

@@ -90,9 +90,11 @@ export class WidgetRegistry extends Evented implements WidgetRegistry {
 				throw error;
 			});
 		}
-		this.emit({
-			type: `defined:${widgetLabel}`
-		});
+		else {
+			this.emit({
+				type: `loaded:${widgetLabel}`
+			});
+		}
 	}
 
 	get(widgetLabel: string): WidgetConstructor | null {
