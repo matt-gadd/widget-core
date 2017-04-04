@@ -658,54 +658,6 @@ widget.setProperties({
 			assert.lengthOf(result.children, 1);
 			assert.strictEqual(result.children && result.children[0].vnodeSelector, 'header');
 		},
-		'async factories only initialise once'() {
-			let resolveFunction: any;
-			const loadFunction = () => {
-				return new Promise((resolve) => {
-					resolveFunction = resolve;
-				});
-			};
-			registry.define('my-header', loadFunction);
-
-			class TestWidget extends WidgetBase<any> {
-				render() {
-					return v('div', [
-						w('my-header', <any> undefined)
-					]);
-				}
-			}
-
-			class TestHeaderWidget extends WidgetBase<any> {
-				render() {
-					return v('header');
-				}
-			}
-
-			let invalidateCount = 0;
-
-			const myWidget: any = new TestWidget();
-			myWidget.on('invalidated', () => {
-				invalidateCount++;
-			});
-
-			let result = <VNode> myWidget.__render__();
-			assert.lengthOf(result.children, 0);
-
-			myWidget.invalidate();
-			myWidget.__render__();
-			myWidget.invalidate();
-			myWidget.__render__();
-
-			resolveFunction(TestHeaderWidget);
-
-			const promise = new Promise((resolve) => setTimeout(resolve, 100));
-			return promise.then(() => {
-				assert.equal(invalidateCount, 3);
-				result = <VNode> myWidget.__render__();
-				assert.lengthOf(result.children, 1);
-				assert.strictEqual(result.children![0].vnodeSelector, 'header');
-			});
-		},
 		'render with async factory'() {
 			let resolveFunction: any;
 			const loadFunction = () => {

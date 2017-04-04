@@ -7,6 +7,12 @@ export type WidgetConstructorFunction = () => Promise<WidgetConstructor>;
 
 export type WidgetRegistryItem = WidgetConstructor | Promise<WidgetConstructor> | WidgetConstructorFunction;
 
+type InternalWidgetRegistryItem = {
+	invalidators?: Function[];
+	item?: WidgetRegistryItem;
+	pending: boolean;
+};
+
 /**
  * Widget base symbol type
  */
@@ -31,7 +37,7 @@ export interface WidgetRegistry {
 	 * @param widgetLabel The label of the widget to return
 	 * @returns The WidgetRegistryItem for the widgetLabel, `null` if no entry exists
 	 */
-	get(widgetLabel: string): WidgetConstructor | Promise<WidgetConstructor> | null;
+	get(widgetLabel: string, invalidator?: Function): WidgetConstructor | Promise<WidgetConstructor> | null;
 
 	/**
 	 * Returns a boolean if an entry for the label exists
@@ -60,44 +66,77 @@ export class WidgetRegistry implements WidgetRegistry {
 	/**
 	 * internal map of labels and WidgetRegistryItem
 	 */
-	private registry: Map<string, WidgetRegistryItem>;
+	private registry: Map<string, InternalWidgetRegistryItem>;
 
 	constructor() {
-		this.registry = new Map<string, WidgetRegistryItem>();
+		this.registry = new Map<string, InternalWidgetRegistryItem>();
+	}
+
+	private invalidate(widgetLabel: string) {
+		const internalRegistryItem = this.registry.get(widgetLabel) || { pending: true };
+		const { invalidators = [], item } = internalRegistryItem;
+		invalidators.forEach((invalidator) => invalidator());
+		this.registry.set(widgetLabel, { item, invalidators: [], pending: false });
 	}
 
 	has(widgetLabel: string): boolean {
-		return this.registry.has(widgetLabel);
+		const internalRegistryItem = this.registry.get(widgetLabel);
+		return !!(internalRegistryItem && internalRegistryItem.item);
 	}
 
 	define(widgetLabel: string, registryItem: WidgetRegistryItem): void {
-		if (this.registry.has(widgetLabel)) {
+		let internalRegistryItem = this.registry.get(widgetLabel) || { pending: true };
+		if (internalRegistryItem.item) {
 			throw new Error(`widget has already been registered for '${widgetLabel}'`);
 		}
-		this.registry.set(widgetLabel, registryItem);
+		internalRegistryItem.item = registryItem;
+		this.registry.set(widgetLabel, internalRegistryItem);
 	}
 
-	get(widgetLabel: string): WidgetConstructor | Promise<WidgetConstructor> | null {
-		if (!this.has(widgetLabel)) {
+	get(widgetLabel: string, invalidator?: Function): WidgetConstructor | Promise<WidgetConstructor> | null {
+		const internalRegistryItem = this.registry.get(widgetLabel) || { pending: true };
+		const { invalidators = [], item, pending } = internalRegistryItem;
+
+		// first of all, if we have an invalidator, add it to the invalidator list if it doesn't exist
+		if (pending && invalidator && invalidators.indexOf(invalidator) < 0) {
+			invalidators.push(invalidator);
+		}
+
+		// if we have no item, set an item in the registry with invalidators
+		if (!item) {
+			this.registry.set(widgetLabel, { invalidators, pending: true });
 			return null;
 		}
 
-		const item = this.registry.get(widgetLabel);
-
-		if (item instanceof Promise || isWidgetBaseConstructor(item)) {
+		// if we are a widget base constructor, return the item, and we are no longer pending
+		if (isWidgetBaseConstructor(item)) {
+			if (pending) {
+				this.invalidate(widgetLabel);
+			}
 			return item;
 		}
 
-		const promise = (<WidgetConstructorFunction> item)();
-
-		this.registry.set(widgetLabel, promise);
-
-		return promise.then((widgetCtor) => {
-			this.registry.set(widgetLabel, widgetCtor);
-			return widgetCtor;
-		}, (error) => {
-			throw error;
-		});
+		if (item instanceof Promise) {
+			this.registry.set(widgetLabel, { invalidators, pending: true });
+			item.then((widgetCtor) => {
+				const result = this.registry.get(widgetLabel);
+				result.item = widgetCtor;
+				this.registry.set(widgetLabel, result.item);
+				this.invalidate(widgetLabel);
+			});
+			return item;
+		}
+		else {
+			const promise = (<WidgetConstructorFunction> item)();
+			this.registry.set(widgetLabel, { item: promise, invalidators, pending: true });
+			promise.then((widgetCtor) => {
+				const result = this.registry.get(widgetLabel);
+				result.item = widgetCtor;
+				this.registry.set(widgetLabel, result.item);
+				this.invalidate(widgetLabel);
+			});
+			return promise;
+		}
 	}
 }
 
