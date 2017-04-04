@@ -167,11 +167,6 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	private _previousProperties: P & { [index: string]: any };
 
 	/**
-	 * Map constructor labels to widget constructor
-	 */
-	private _initializedConstructorMap: Map<string, Promise<WidgetConstructor>>;
-
-	/**
 	 * cached chldren map for instance management
 	 */
 	private _cachedChildrenMap: Map<string | Promise<WidgetConstructor> | WidgetConstructor, WidgetCacheWrapper[]>;
@@ -207,7 +202,6 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		this._decoratorCache = new Map<string, any[]>();
 		this._properties = <P> {};
 		this._previousProperties = <P> {};
-		this._initializedConstructorMap = new Map<string, Promise<WidgetConstructor>>();
 		this._cachedChildrenMap = new Map<string | Promise<WidgetConstructor> | WidgetConstructor, WidgetCacheWrapper[]>();
 		this._diffPropertyFunctionMap = new Map<string, string>();
 		this._renderDecorators = new Set<string>();
