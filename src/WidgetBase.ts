@@ -139,7 +139,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	/**
 	 * Internal widget registry
 	 */
-	protected registry: WidgetRegistry | undefined;
+	private _registry: WidgetRegistry | undefined;
 
 	/**
 	 * children array
@@ -483,6 +483,17 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 				properties[propertyKey] = boundFunc;
 			}
 		});
+	}
+
+	private set registry (registry) {
+		if (this.registry) {
+			this.registry.destroy();
+		}
+		this._registry = registry;
+	}
+
+	private get registry() {
+		return this._registry;
 	}
 
 	/**
