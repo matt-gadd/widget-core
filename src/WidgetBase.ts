@@ -136,6 +136,7 @@ export class RegistryHandler extends Evented {
 	remove(registry: WidgetRegistry): boolean {
 		return this._registries.some((registryWrapper, i) => {
 			if (registryWrapper.registry === registry) {
+				registry.destroy();
 				this._registries.splice(i, 1);
 				return true;
 			}
@@ -143,12 +144,21 @@ export class RegistryHandler extends Evented {
 		});
 	}
 
+	replace(original: WidgetRegistry, replacement: WidgetRegistry): boolean {
+		return this._registries.some((registryWrapper, i) => {
+			if (registryWrapper.registry === original) {
+				original.destroy();
+				registryWrapper.registry = replacement;
+				return true;
+			}
+			return false;
+		});
+	}
+
 	has(widgetLabel: string): boolean {
-		for (let i = 0; i < this._registries.length; i++) {
-			const { registry } = this._registries[i];
-			return registry.has(widgetLabel);
-		}
-		return false;
+		return this._registries.some((registryWrapper) => {
+			return registryWrapper.registry.has(widgetLabel);
+		});
 	}
 
 	get(widgetLabel: string): WidgetConstructor | null {
