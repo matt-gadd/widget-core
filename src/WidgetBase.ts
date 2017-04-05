@@ -121,6 +121,55 @@ function isHNodeWithKey(node: DNode): node is HNode {
 	return isHNode(node) && (node.properties != null) && (node.properties.key != null);
 }
 
+export class RegistryHandler extends Evented {
+	private _registries: { handle?: any, registry: WidgetRegistry }[];
+
+	constructor() {
+		super();
+		this._registries = [];
+	}
+
+	add(registry: WidgetRegistry) {
+		this._registries.unshift({ registry });
+	}
+
+	remove(registry: WidgetRegistry): boolean {
+		return this._registries.some((registryWrapper, i) => {
+			if (registryWrapper.registry === registry) {
+				this._registries.splice(i, 1);
+				return true;
+			}
+			return false;
+		});
+	}
+
+	has(widgetLabel: string): boolean {
+		for (let i = 0; i < this._registries.length; i++) {
+			const { registry } = this._registries[i];
+			return registry.has(widgetLabel);
+		}
+		return false;
+	}
+
+	get(widgetLabel: string): WidgetConstructor | null {
+		for (let i = 0; i < this._registries.length; i++) {
+			const registryWrapper = this._registries[i];
+			const item = registryWrapper.registry.get(widgetLabel);
+			if (item) {
+				return item;
+			}
+			else if (!registryWrapper.handle) {
+				registryWrapper.handle = registryWrapper.registry.on(`loaded:${widgetLabel}`, () => {
+					this.emit({ type: 'invalidate' });
+					registryWrapper.handle.destroy();
+					registryWrapper.handle = undefined;
+				});
+			}
+		}
+		return null;
+	}
+}
+
 /**
  * Main widget base for all widgets to extend
  */
@@ -135,11 +184,6 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 * on for the events defined for widget base
 	 */
 	public on: WidgetBaseEvents<P>;
-
-	/**
-	 * Internal widget registry
-	 */
-	private _registry: WidgetRegistry | undefined;
 
 	/**
 	 * children array
@@ -183,9 +227,7 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 	 */
 	private _renderDecorators: Set<string>;
 
-	private _localRegistryHandle: any;
-
-	private _globalRegistryHandle: any;
+	private _registries: any;
 
 	/**
 	 * Map of functions properties for the bound function
@@ -206,6 +248,11 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		this._diffPropertyFunctionMap = new Map<string, string>();
 		this._renderDecorators = new Set<string>();
 		this._bindFunctionPropertyMap = new WeakMap<(...args: any[]) => any, { boundFunc: (...args: any[]) => any, scope: any }>();
+		this._registries = new RegistryHandler();
+		this._registries.add(registry);
+		this.own(this._registries);
+
+		this.own(this._registries.on('invalidate', this.invalidate.bind(this)));
 
 		this.own(this.on('properties:changed', (evt) => {
 			this._dirty = true;
@@ -479,49 +526,8 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 		});
 	}
 
-	private set registry (registry) {
-		if (this.registry) {
-			this.registry.destroy();
-		}
-		this._registry = registry;
-	}
-
-	private get registry() {
-		return this._registry;
-	}
-
-	/**
-	 * Returns the constructor from the registry for the specified label. First checks a local registry passed via
-	 * properties, if no local registry or the constructor is not found fallback to the global registry
-	 *
-	 * @param widgetLabel the label to look up in the registry
-	 */
-	private getFromRegistry(widgetLabel: string): WidgetConstructor | null {
-		if (this.registry) {
-			const local = this.registry.get(widgetLabel);
-			if (local) {
-				return local;
-			}
-			else if (!this._localRegistryHandle) {
-				this._localRegistryHandle = this.registry.on(`loaded:${widgetLabel}`, () => {
-					this.invalidate();
-					this._localRegistryHandle.destroy();
-					this._localRegistryHandle = undefined;
-				});
-			}
-		}
-		const global = registry.get(widgetLabel);
-		if (global) {
-			return global;
-		}
-		else if (!this._globalRegistryHandle) {
-			this._globalRegistryHandle = registry.on(`loaded:${widgetLabel}`, () => {
-				this.invalidate();
-				this._globalRegistryHandle.destroy();
-				this._globalRegistryHandle = undefined;
-			});
-		}
-		return null;
+	protected get registries() {
+		return this._registries;
 	}
 
 	/**
@@ -544,11 +550,11 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 			let child: WidgetBaseInterface<WidgetProperties>;
 
 			if (typeof widgetConstructor === 'string') {
-				const item = this.getFromRegistry(widgetConstructor);
+				const item = this._registries.get(widgetConstructor);
 				if (item === null) {
 					return null;
 				}
-				widgetConstructor = item;
+				widgetConstructor = <WidgetConstructor> item;
 			}
 
 			const childrenMapKey = key || widgetConstructor;

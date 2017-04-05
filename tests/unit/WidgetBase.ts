@@ -685,7 +685,7 @@ widget.setProperties({
 			class TestWidget extends WidgetBase<any> {
 				constructor() {
 					super();
-					this.registry = localRegistry;
+					this.registries.add(localRegistry);
 				}
 				render() {
 					return v('div', [
@@ -812,7 +812,7 @@ widget.setProperties({
 			class TestWidget extends WidgetBase<any> {
 				constructor() {
 					super();
-					this.registry = registry;
+					this.registries.add(registry);
 				}
 
 				render() {
