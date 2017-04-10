@@ -21,10 +21,12 @@ export function RegistryMixin<T extends Constructor<WidgetBase<RegistryMixinProp
 			if (!previousValue) {
 				this.registries.add(value);
 				changed = true;
-			} else if (previousValue !== value) {
+			}
+			else if (previousValue !== value) {
 				this.registries.replace(previousValue, value);
 				changed = true;
-			} else if (this._previousRegistrySize !== value.size) {
+			}
+			else if (this._previousRegistrySize !== value.size) {
 				changed = true;
 			}
 			this._previousRegistrySize = value.size;
