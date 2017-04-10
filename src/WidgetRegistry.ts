@@ -61,12 +61,7 @@ export class WidgetRegistry extends Evented implements WidgetRegistry {
 	/**
 	 * internal map of labels and WidgetRegistryItem
 	 */
-	private registry: Map<string, WidgetRegistryItem>;
-
-	constructor() {
-		super();
-		this.registry = new Map<string, WidgetRegistryItem>();
-	}
+	private registry: Map<string, WidgetRegistryItem> = new Map<string, WidgetRegistryItem>();
 
 	has(widgetLabel: string): boolean {
 		return this.registry.has(widgetLabel);

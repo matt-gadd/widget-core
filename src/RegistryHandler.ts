@@ -3,12 +3,7 @@ import { WidgetConstructor } from './interfaces';
 import WidgetRegistry from './WidgetRegistry';
 
 export default class RegistryHandler extends Evented {
-	private _registries: { handle?: any, registry: WidgetRegistry }[];
-
-	constructor() {
-		super();
-		this._registries = [];
-	}
+	private _registries: { handle?: any, registry: WidgetRegistry }[] = [];
 
 	add(registry: WidgetRegistry) {
 		this._registries.unshift({ registry });
