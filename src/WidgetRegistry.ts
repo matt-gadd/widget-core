@@ -122,10 +122,6 @@ export class WidgetRegistry extends Evented implements WidgetRegistry {
 
 		return null;
 	}
-
-	get size() {
-		return this.registry.size;
-	}
 }
 
 export default WidgetRegistry;

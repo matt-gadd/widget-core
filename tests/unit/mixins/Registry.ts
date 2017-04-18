@@ -50,22 +50,6 @@ registerSuite({
 			widget.setProperties({ registry: newRegistry });
 			assert.isTrue(replace.calledWith(registry, newRegistry));
 			assert.deepEqual(widget.getChangedKeys(), [ 'registry' ]);
-		},
-		'marks as changed when registry size changes'() {
-			const widget = new TestWithRegistry();
-			const registry = new WidgetRegistry();
-
-			widget.setProperties({ registry });
-
-			const add = spy(widget.getRegistries(), 'add');
-			const replace = spy(widget.getRegistries(), 'replace');
-
-			registry.define('foo', WidgetBase);
-
-			widget.setProperties({ registry });
-			assert.isFalse(add.called);
-			assert.isFalse(replace.called);
-			assert.deepEqual(widget.getChangedKeys(), [ 'registry' ]);
 		}
 	},
 	integration: {
