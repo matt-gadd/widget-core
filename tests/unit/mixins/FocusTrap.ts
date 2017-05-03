@@ -1,15 +1,16 @@
 import * as registerSuite from 'intern!object';
 import { v, w } from '../../../src/d';
-import { FocusTrapMixin, FocusTrapMixinProperties } from '../../../src/mixins/FocusTrap';
+import FocusTrap from '../../../src/mixins/FocusTrap';
 import { ProjectorMixin } from '../../../src/mixins/Projector';
 import { WidgetBase } from '../../../src/WidgetBase';
 import { WidgetProperties } from '../../../src/interfaces';
 
-export interface MenuProperties extends FocusTrapMixinProperties {
+export interface MenuProperties extends WidgetProperties {
 	onToggle: any;
+	trap: boolean;
 }
 
-class Menu extends FocusTrapMixin(WidgetBase)<MenuProperties> {
+class Menu extends WidgetBase<MenuProperties> {
 	private _toggle() {
 		const { onToggle } = this.properties;
 		onToggle && onToggle();
@@ -18,22 +19,26 @@ class Menu extends FocusTrapMixin(WidgetBase)<MenuProperties> {
 	render() {
 		const { trap } = this.properties;
 		const trappedText = trap ? 'on' : 'off';
-		return v('div', [
-			v('div', { classes: { underlay: trap } }),
-			v('div', { classes: { content: trap } }, [
-				v('button', [ 'a' ]),
-				v('button', [ 'b' ]),
-				v('button', [ 'c' ]),
-				v('button', { onclick: this._toggle }, [ `trap is: ${trappedText}` ])
+		return w(FocusTrap, { trap, focusOnTrap: true }, [
+			v('div', [
+				v('div', { classes: { underlay: trap } }),
+				v('div', { classes: { content: trap } }, [
+					v('button', [ 'a' ]),
+					v('button', [ 'b' ]),
+					v('button', [ 'c' ]),
+					v('button', { bind: this, onclick: this._toggle }, [ `trap is: ${trappedText}` ])
+				])
 			])
 		]);
 	}
 }
 
 class Foo extends WidgetBase<WidgetProperties> {
+
 	private _trapA = false;
 	private _trapB = false;
 	private _trapC = false;
+
 	onToggleA() {
 		this._trapA = !this._trapA;
 		this.invalidate();
