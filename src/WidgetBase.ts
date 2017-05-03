@@ -57,6 +57,14 @@ export function afterRender(method?: Function) {
 	});
 }
 
+export function afterRenderVNode(method: Function): (target: any) => void;
+export function afterRenderVNode(): (target: any, propertyKey: string) => void;
+export function afterRenderVNode(method?: Function) {
+	return handleDecorator((target, propertyKey) => {
+		target.addDecorator('afterRender', propertyKey ? target[propertyKey] : method);
+	});
+}
+
 /**
  * Decorator that can be used to register a reducer function to run as an aspect before to `render`
  */
@@ -376,6 +384,10 @@ export class WidgetBase<P extends WidgetProperties> extends Evented implements W
 				dNode = afterRenderFunction.call(this, dNode);
 			});
 			const widget = this.dNodeToVNode(dNode);
+			const afterRenderVNodes = this.getDecorator('afterRenderVNode');
+			afterRenderVNodes.forEach((afterRenderFunction: Function) => {
+				dNode = afterRenderFunction.call(this, dNode);
+			});
 			this.manageDetachedChildren();
 			if (widget) {
 				this._cachedVNode = widget;
