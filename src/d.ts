@@ -22,6 +22,8 @@ export const WNODE = Symbol('Identifier for a WNode.');
  */
 export const HNODE = Symbol('Identifier for a HNode.');
 
+export const REGISTRY_ITEM = Symbol('Identifier for an item from the Widget Registry.');
+
 /**
  * Helper function that returns true if the `DNode` is a `WNode` using the `type` property
  */
@@ -124,4 +126,26 @@ export function v(tag: string, propertiesOrChildren: VirtualDomProperties | DNod
 			},
 			type: HNODE
 		};
+}
+
+export function tsx(tag: any, properties = {}, ...children: any[]) {
+	properties = properties === null ? {} : properties;
+	if (typeof tag === 'string') {
+		return v(tag, properties, children);
+	}
+	else if (tag.type === REGISTRY_ITEM) {
+		const registryItem = new tag();
+		return w(registryItem.name, properties, children);
+	}
+	else {
+		return w(tag, properties, children);
+	}
+}
+
+export function fromRegistry<P>(tag: string) {
+	return class {
+		properties: P;
+		static type = REGISTRY_ITEM;
+		name = tag;
+	};
 }
