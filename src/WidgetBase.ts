@@ -120,11 +120,100 @@ export function handleDecorator(handler: (target: any, propertyKey?: string) => 
 	};
 }
 
-/**
- * Function that identifies DNodes that are HNodes with key properties.
- */
-function isHNodeWithKey(node: DNode): node is HNode {
-	return isHNode(node) && (node.properties != null) && (node.properties.key != null);
+interface Animation {
+	currentTime: number | null;
+	playbackRate: number | null;
+	playState: 'idle' | 'pending' | 'running' | 'paused' | 'finished' | null;
+	startTime: number | null;
+}
+
+export class AnimationsMeta {
+	get(animationId: string): Animation {
+		return {
+			currentTime: null,
+			playbackRate: null,
+			playState: null,
+			startTime: null
+		};
+	}
+}
+
+interface Dimensions {
+	scrollLeft: number | null;
+	scrollTop: number | null;
+	scrollHeight: number | null;
+	scrollWidth: number | null;
+	bottom: number | null;
+	height: number | null;
+	left: number | null;
+	right: number | null;
+	top: number | null;
+	width: number | null;
+}
+
+export class DimensionsMeta {
+	private _map = new Map<any, Element>();
+	private _boundAddToMap: any;
+
+	constructor(target: WidgetBase) {
+		afterRender(this._afterRender.bind(this))(target);
+		this._boundAddToMap = this._addToMap.bind(this);
+	}
+
+	private _afterRender(nodes: DNode) {
+		decorate(nodes, (node: HNode) => {
+			node.properties.afterCreate = this._boundAddToMap;
+		}, isHNodeWithDimensions);
+		return nodes;
+	}
+
+	private _addToMap(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string, properties: VNodeProperties) {
+		this._map.set(properties.key, element);
+	}
+
+	private _getDimensions(element: Element): Dimensions {
+		const clientRect = element.getBoundingClientRect();
+		return {
+			scrollLeft: element.scrollLeft,
+			scrollTop: element.scrollTop,
+			scrollHeight: element.scrollHeight,
+			scrollWidth: element.scrollWidth,
+			bottom: clientRect.bottom,
+			height: clientRect.height,
+			left: clientRect.left,
+			right: clientRect.right,
+			top: clientRect.top,
+			width: clientRect.width
+		};
+	}
+
+	get(key: string): Dimensions {
+		const element = this._map.get(key);
+		if (element) {
+			return this._getDimensions(element);
+		}
+		else {
+			return {
+				scrollLeft: null,
+				scrollTop: null,
+				scrollHeight: null,
+				scrollWidth: null,
+				bottom: null,
+				height: null,
+				left: null,
+				right: null,
+				top: null,
+				width: null
+			};
+		}
+	}
+}
+
+function isHNodeWithDimensions(node: DNode): node is HNode {
+	return 	isHNode(node) &&
+			(node.properties != null) &&
+			(node.properties.key != null) &&
+			(node.properties.dimensions === true);
 }
 
 /**
@@ -196,6 +285,7 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 	private _bindFunctionPropertyMap: WeakMap<(...args: any[]) => any, { boundFunc: (...args: any[]) => any, scope: any }>;
 
 	private _renderState: WidgetRenderState = WidgetRenderState.IDLE;
+	private _metaMap = new WeakMap<any, any>();
 
 	/**
 	 * @constructor
@@ -227,59 +317,13 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 		}));
 	}
 
-	/**
-	 * A render decorator that registers vnode callbacks for 'afterCreate' and
-	 * 'afterUpdate' that will in turn call lifecycle methods onElementCreated and onElementUpdated.
-	 */
-	@afterRender()
-	protected attachLifecycleCallbacks (node: DNode): DNode {
-		// Create vnode afterCreate and afterUpdate callback functions that will only be set on nodes
-		// with "key" properties.
-
-		decorate(node, (node: HNode) => {
-			node.properties.afterCreate = this.afterCreateCallback;
-			node.properties.afterUpdate = this.afterUpdateCallback;
-		}, isHNodeWithKey);
-
-		return node;
-	}
-
-	/**
-	 * vnode afterCreate callback that calls the onElementCreated lifecycle method.
-	 */
-	private afterCreateCallback(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string,
-		properties: VNodeProperties, children: VNode[]): void {
-		this.onElementCreated(element, String(properties.key));
-	}
-
-	/**
-	 * vnode afterUpdate callback that calls the onElementUpdated lifecycle method.
-	 */
-	private afterUpdateCallback(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string,
-		properties: VNodeProperties, children: VNode[]): void {
-		this.onElementUpdated(element, String(properties.key));
-	}
-
-	/**
-	 * Widget lifecycle method that is called whenever a dom node is created for a vnode.
-	 * Override this method to access the dom nodes that were inserted into the dom.
-	 * @param element The dom node represented by the vdom node.
-	 * @param key The vdom node's key.
-	 */
-	protected onElementCreated(element: Element, key: string): void {
-		// Do nothing by default.
-	}
-
-	/**
-	 * Widget lifecycle method that is called whenever a dom node that is associated with a vnode is updated.
-	 * Note: this method is dependant on the Maquette afterUpdate callback which is called if a dom
-	 * node might have been updated.  Maquette does not guarantee the dom node was updated.
-	 * Override this method to access the dom node.
-	 * @param element The dom node represented by the vdom node.
-	 * @param key The vdom node's key.
-	 */
-	protected onElementUpdated(element: Element, key: string): void {
-		// Do nothing by default.
+	protected meta<T extends {}>(MetaType: { new (target: WidgetBase): T; }): T {
+		let meta = this._metaMap.get(MetaType);
+		if (!meta) {
+			meta = new MetaType(this);
+			this._metaMap.set(MetaType, meta);
+		}
+		return meta;
 	}
 
 	public get properties(): Readonly<P> {

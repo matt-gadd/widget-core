@@ -3,8 +3,9 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { w, v } from '../../../src/d';
 import { RegistryMixin, RegistryMixinProperties } from '../../../src/mixins/Registry';
-import { WidgetBase } from '../../../src/WidgetBase';
+import { WidgetBase, DimensionsMeta, AnimationsMeta } from '../../../src/WidgetBase';
 import WidgetRegistry from '../../../src/WidgetRegistry';
+import { ProjectorMixin } from '../../../src/mixins/Projector';
 import { spy } from 'sinon';
 
 class TestWithRegistry extends RegistryMixin(WidgetBase)<RegistryMixinProperties> {
@@ -25,18 +26,28 @@ class TestWithRegistry extends RegistryMixin(WidgetBase)<RegistryMixinProperties
 	getRegistries() {
 		return this.registries;
 	}
+	render() {
+		const dimensions = this.meta(DimensionsMeta).get('foo');
+		const animations = this.meta(AnimationsMeta).get('animationId');
+		return v('div', { key: 'foo', dimensions: true }, [
+			JSON.stringify(dimensions),
+			JSON.stringify(animations)
+		]);
+	}
 }
 
 registerSuite({
 	name: 'mixins/RegistryMixin',
 	property: {
 		'adds registry and marks as changed when no previous registry'() {
-			const widget = new TestWithRegistry();
+			const Widget = ProjectorMixin(TestWithRegistry);
+			const widget = new Widget();
 			const registry = new WidgetRegistry();
-			const add = spy(widget.getRegistries(), 'add');
-			widget.__setProperties__({ registry });
-			assert.isTrue(add.calledWith(registry));
-			assert.deepEqual(widget.getChangedKeys(), [ 'registry' ]);
+			widget.setProperties({ registry });
+			widget.append();
+			return new Promise((resolve) => {
+				widget.setProperties({ registry, blah: true });
+			});
 		},
 		'replaces registry and marks as changed when different to previous registry'() {
 			const widget = new TestWithRegistry();
