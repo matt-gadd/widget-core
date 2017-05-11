@@ -121,34 +121,34 @@ export function handleDecorator(handler: (target: any, propertyKey?: string) => 
 }
 
 interface Animation {
-	currentTime: number | null;
-	playbackRate: number | null;
-	playState: 'idle' | 'pending' | 'running' | 'paused' | 'finished' | null;
-	startTime: number | null;
+	currentTime: number | undefined;
+	playbackRate: number | undefined;
+	playState: 'idle' | 'pending' | 'running' | 'paused' | 'finished' | undefined;
+	startTime: number | undefined;
 }
 
 export class AnimationsMeta {
 	get(animationId: string): Animation {
 		return {
-			currentTime: null,
-			playbackRate: null,
-			playState: null,
-			startTime: null
+			currentTime: undefined,
+			playbackRate: undefined,
+			playState: undefined,
+			startTime: undefined
 		};
 	}
 }
 
 interface Dimensions {
-	scrollLeft: number | null;
-	scrollTop: number | null;
-	scrollHeight: number | null;
-	scrollWidth: number | null;
-	bottom: number | null;
-	height: number | null;
-	left: number | null;
-	right: number | null;
-	top: number | null;
-	width: number | null;
+	scrollLeft: number | undefined;
+	scrollTop: number | undefined;
+	scrollHeight: number | undefined;
+	scrollWidth: number | undefined;
+	bottom: number | undefined;
+	height: number | undefined;
+	left: number | undefined;
+	right: number | undefined;
+	top: number | undefined;
+	width: number | undefined;
 }
 
 export class DimensionsMeta {
@@ -194,16 +194,16 @@ export class DimensionsMeta {
 		}
 		else {
 			return {
-				scrollLeft: null,
-				scrollTop: null,
-				scrollHeight: null,
-				scrollWidth: null,
-				bottom: null,
-				height: null,
-				left: null,
-				right: null,
-				top: null,
-				width: null
+				scrollLeft: undefined,
+				scrollTop: undefined,
+				scrollHeight: undefined,
+				scrollWidth: undefined,
+				bottom: undefined,
+				height: undefined,
+				left: undefined,
+				right: undefined,
+				top: undefined,
+				width: undefined
 			};
 		}
 	}
