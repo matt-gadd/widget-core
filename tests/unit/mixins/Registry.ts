@@ -27,11 +27,11 @@ class TestWithRegistry extends RegistryMixin(WidgetBase)<RegistryMixinProperties
 		return this.registries;
 	}
 	render() {
-		const dimensions = this.meta(DimensionsMeta).get('foo');
-		const animations = this.meta(AnimationsMeta).get('animationId');
+		const dimensions = this.meta(DimensionsMeta);
+		const animations = this.meta(AnimationsMeta);
 		return v('div', { key: 'foo', dimensions: true }, [
-			JSON.stringify(dimensions),
-			JSON.stringify(animations)
+			JSON.stringify(dimensions.get('foo')),
+			JSON.stringify(animations.get('animationId'))
 		]);
 	}
 }

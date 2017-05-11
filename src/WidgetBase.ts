@@ -152,25 +152,12 @@ interface Dimensions {
 }
 
 export class DimensionsMeta {
-	private _map = new Map<any, Element>();
-	private _boundAddToMap: any;
-	private _target: WidgetBase;
+	private _invalidate: any;
+	private _nodes: any;
 
-	constructor(target: WidgetBase) {
-		afterRender(this._afterRender.bind(this))(target);
-		this._target = target;
-		this._boundAddToMap = this._addToMap.bind(this);
-	}
-
-	private _afterRender(nodes: DNode) {
-		decorate(nodes, (node: HNode) => {
-			node.properties.afterCreate = this._boundAddToMap;
-		}, isHNodeWithDimensions);
-		return nodes;
-	}
-
-	private _addToMap(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string, properties: VNodeProperties) {
-		this._map.set(properties.key, element);
+	constructor({ invalidate, nodes }: { invalidate: any, nodes: any }) {
+		this._invalidate = invalidate;
+		this._nodes = nodes;
 	}
 
 	private _getDimensions(element: Element): Dimensions {
@@ -190,12 +177,12 @@ export class DimensionsMeta {
 	}
 
 	get(key: string): Dimensions {
-		const element = this._map.get(key);
+		const element = this._nodes(key);
 		if (element) {
 			return this._getDimensions(element);
 		}
 		else {
-			this._target.invalidate(true);
+			this._invalidate(true);
 			return {
 				scrollLeft: undefined,
 				scrollTop: undefined,
@@ -212,11 +199,10 @@ export class DimensionsMeta {
 	}
 }
 
-function isHNodeWithDimensions(node: DNode): node is HNode {
+function isHNodeWithKey(node: DNode): node is HNode {
 	return 	isHNode(node) &&
 			(node.properties != null) &&
-			(node.properties.key != null) &&
-			(node.properties.dimensions === true);
+			(node.properties.key != null);
 }
 
 /**
@@ -289,6 +275,7 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 
 	private _renderState: WidgetRenderState = WidgetRenderState.IDLE;
 	private _metaMap = new WeakMap<any, any>();
+	private _nodeMap = new Map<any, any>();
 
 	/**
 	 * @constructor
@@ -322,13 +309,30 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 		}));
 	}
 
-	protected meta<T extends {}>(MetaType: { new (target: WidgetBase): T; }): T {
+	protected meta<T extends {}>(MetaType: { new (...args: any[]): T; }): T {
 		let meta = this._metaMap.get(MetaType);
 		if (!meta) {
-			meta = new MetaType(this);
+			meta = new MetaType({
+				invalidate: this.invalidate.bind(this),
+				nodes: this._nodeMap.get.bind(this._nodeMap)
+			});
 			this._metaMap.set(MetaType, meta);
 		}
 		return meta;
+	}
+
+	@afterRender()
+	protected _afterCallbacks(node: DNode): DNode {
+		decorate(node, (node: HNode) => {
+			(<any> node.properties).afterCreate = this._setNode;
+			(<any> node.properties).afterUpdate = this._setNode;
+		}, isHNodeWithKey);
+		return node;
+	}
+
+	private _setNode(element: Element, projectionOptions: ProjectionOptions, vnodeSelector: string,
+		properties: VNodeProperties, children: VNode[]): void {
+			this._nodeMap.set(properties.key, element);
 	}
 
 	public get properties(): Readonly<P> {
