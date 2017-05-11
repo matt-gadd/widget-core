@@ -46,7 +46,6 @@ registerSuite({
 			widget.setProperties({ registry });
 			widget.append();
 			return new Promise((resolve) => {
-				widget.setProperties({ registry, blah: true });
 			});
 		},
 		'replaces registry and marks as changed when different to previous registry'() {

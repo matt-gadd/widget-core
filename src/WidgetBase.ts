@@ -154,9 +154,11 @@ interface Dimensions {
 export class DimensionsMeta {
 	private _map = new Map<any, Element>();
 	private _boundAddToMap: any;
+	private _target: WidgetBase;
 
 	constructor(target: WidgetBase) {
 		afterRender(this._afterRender.bind(this))(target);
+		this._target = target;
 		this._boundAddToMap = this._addToMap.bind(this);
 	}
 
@@ -193,6 +195,7 @@ export class DimensionsMeta {
 			return this._getDimensions(element);
 		}
 		else {
+			this._target.invalidate(true);
 			return {
 				scrollLeft: undefined,
 				scrollTop: undefined,
@@ -305,7 +308,9 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 		this._registries.add(registry);
 		this.own(this._registries);
 
-		this.own(this._registries.on('invalidate', this.invalidate.bind(this)));
+		this.own(this._registries.on('invalidate', () => {
+			this.invalidate(true);
+		}));
 
 		this.own(this.on('properties:changed', (evt) => {
 			this._dirty = true;
@@ -442,8 +447,8 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 		return this._cachedVNode;
 	}
 
-	public invalidate(): void {
-		if (this._renderState === WidgetRenderState.IDLE) {
+	public invalidate(force?: boolean): void {
+		if (this._renderState === WidgetRenderState.IDLE || force) {
 			this._dirty = true;
 			this.emit({
 				type: 'invalidated',
@@ -613,7 +618,7 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 				child = new widgetConstructor();
 				child.__setProperties__(properties);
 				child.own(child.on('invalidated', () => {
-					this.invalidate();
+					this.invalidate(true);
 				}));
 				cachedChildren = [...cachedChildren, { child, widgetConstructor, used: true }];
 				this._cachedChildrenMap.set(childrenMapKey, cachedChildren);
