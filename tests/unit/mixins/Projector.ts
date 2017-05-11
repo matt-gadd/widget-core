@@ -4,7 +4,7 @@ import '@dojo/shim/Promise';
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { spy } from 'sinon';
-import { v } from '../../../src/d';
+import { v, w } from '../../../src/d';
 import { ProjectorMixin, ProjectorAttachState } from '../../../src/mixins/Projector';
 import { WidgetBase } from '../../../src/WidgetBase';
 import { waitFor } from '../waitFor';
@@ -242,24 +242,34 @@ registerSuite({
 		}, Error, 'already attached');
 	},
 	'can attach an event handler'() {
-		let domNode: any;
 		let domEvent: any;
-		const oninput = (evt: any) => {
-			domEvent = evt;
-		};
-		const afterCreate = (node: Node) => {
-			domNode = node;
-		};
-		const Projector = class extends TestWidget {
+		class Foo extends WidgetBase {
+			_onClick() {
+				debugger;
+			}
 			render() {
-				return v('div', { oninput, afterCreate });
+				return v('div', { id: 'foo', onclick: this._onClick }, [ 'foo' ]);
+			}
+		}
+		const Projector = class extends TestWidget {
+			_onClick() {
+				debugger;
+			}
+			render() {
+				return v('div', { id: 'bar', onclick: this._onClick }, [
+					v('div', [ 'bar' ]),
+					w(Foo, {})
+				]);
 			}
 		};
 
 		const projector = new Projector();
 		projector.append();
-		dispatchEvent(domNode, 'input');
-		assert.instanceOf(domEvent, Event);
+		const domNode = document.getElementById('foo');
+		domNode.click();
+		/*dispatchEvent(domNode, 'click');
+		assert.instanceOf(domEvent, Event);*/
+		return new Promise((resolve) => {});
 	},
 	'can attach an event listener'() {
 		let domNode: any;

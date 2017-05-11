@@ -197,6 +197,8 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 
 	private _renderState: WidgetRenderState = WidgetRenderState.IDLE;
 
+	protected _encapsulateEvents = true;
+
 	/**
 	 * @constructor
 	 */
@@ -235,6 +237,10 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 	protected attachLifecycleCallbacks (node: DNode): DNode {
 		// Create vnode afterCreate and afterUpdate callback functions that will only be set on nodes
 		// with "key" properties.
+		//
+		if (isHNode(node) && node.properties != null) {
+			node.properties.afterCreate = this._addRootNode;
+		}
 
 		decorate(node, (node: HNode) => {
 			node.properties.afterCreate = this.afterCreateCallback;
@@ -242,6 +248,11 @@ export class WidgetBase<P extends WidgetProperties = WidgetProperties, C extends
 		}, isHNodeWithKey);
 
 		return node;
+	}
+
+	private _addRootNode(element: Element, projectionOptions: any, vnodeSelector: string,
+		properties: VNodeProperties, children: VNode[]): void {
+		projectionOptions.elementToBubbleTo(element);
 	}
 
 	/**

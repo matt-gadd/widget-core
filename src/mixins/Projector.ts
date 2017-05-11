@@ -1,10 +1,12 @@
 import global from '@dojo/core/global';
 import { Handle } from '@dojo/interfaces/core';
-import { dom, Projection, ProjectionOptions, VNodeProperties } from 'maquette';
+import { dom, Projection, VNodeProperties } from 'maquette';
 import 'pepjs';
 import cssTransitions from '../animations/cssTransitions';
 import { Constructor, DNode, WidgetProperties } from './../interfaces';
 import { WidgetBase } from './../WidgetBase';
+import WeakMap from '@dojo/shim/WeakMap';
+import Map from '@dojo/shim/Map';
 
 /**
  * Represents the attach state of the projector
@@ -95,33 +97,6 @@ export interface ProjectorMixin<P extends WidgetProperties> {
 	readonly projectorState: ProjectorAttachState;
 }
 
-const eventHandlers = [
-	'ontouchcancel',
-	'ontouchend',
-	'ontouchmove',
-	'ontouchstart',
-	'onblur',
-	'onchange',
-	'onclick',
-	'ondblclick',
-	'onfocus',
-	'oninput',
-	'onkeydown',
-	'onkeypress',
-	'onkeyup',
-	'onload',
-	'onmousedown',
-	'onmouseenter',
-	'onmouseleave',
-	'onmousemove',
-	'onmouseout',
-	'onmouseover',
-	'onmouseup',
-	'onmousewheel',
-	'onscroll',
-	'onsubmit'
-];
-
 export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(base: T): T & Constructor<ProjectorMixin<P>> {
 	return class extends base {
 
@@ -129,19 +104,25 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(base: T)
 
 		private _root: Element;
 		private _attachHandle: Handle;
-		private _projectionOptions: ProjectionOptions;
+		private _projectionOptions: any;
 		private _projection: Projection | undefined;
 		private _scheduled: number | undefined;
 		private _paused: boolean;
 		private _boundDoRender: FrameRequestCallback;
 		private _boundRender: Function;
+		private _rootEventNames: string[] = [];
+		private _boundHandler: any;
+
+		private _events = new WeakMap<Element, Map<string, any>>();
+		private _widgetMarkers = new WeakMap<Element, any>();
 
 		constructor(...args: any[]) {
 			super(...args);
 
 			this._projectionOptions = {
 				transitions: cssTransitions,
-				eventHandlerInterceptor: this.eventHandlerInterceptor.bind(this)
+				eventHandlerInterceptor: this.eventHandlerInterceptor.bind(this),
+				elementToBubbleTo: this._addElementToEventMap.bind(this)
 			};
 
 			this._boundDoRender = this.doRender.bind(this);
@@ -155,6 +136,11 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(base: T)
 
 			this.root = document.body;
 			this.projectorState = ProjectorAttachState.Detached;
+			this._boundHandler = this.eventHandler.bind(this);
+		}
+
+		private _addElementToEventMap(element: Element) {
+			this._widgetMarkers.set(element, true);
 		}
 
 		public append(root?: Element) {
@@ -232,17 +218,47 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(base: T)
 		}
 
 		private eventHandlerInterceptor(propertyName: string, eventHandler: Function, domNode: Element, properties: VNodeProperties) {
-			if (eventHandlers.indexOf(propertyName) > -1) {
-				return function(this: Node, ...args: any[]) {
-					return eventHandler.apply(properties.bind || this, args);
-				};
+			const eventName = propertyName.substr(2);
+
+			if (this._rootEventNames.indexOf(eventName) < 0) {
+				this.root.addEventListener(eventName, this._boundHandler);
+				this._rootEventNames.push(eventName);
 			}
-			else {
-				// remove "on" from event name
-				const eventName = propertyName.substr(2);
-				domNode.addEventListener(eventName, (...args: any[]) => {
-					eventHandler.apply(properties.bind || this, args);
-				});
+
+			let map = this._events.get(domNode);
+			if (!map) {
+				map = new Map<string, any>();
+			}
+			map.set(eventName, { eventName, eventHandler, properties });
+			this._events.set(domNode, map);
+		}
+
+		private eventHandler(evt: any) {
+			let node;
+			let handle;
+			let eventMatches = false;
+			let eventFired = false;
+
+			while (node !== this.root) {
+				let stopPropagation;
+
+				node = node ? node.parentNode : evt.target;
+				handle = this._events.get(node);
+				stopPropagation = this._widgetMarkers.get(node);
+
+				eventMatches = handle && handle.get(evt.type) !== undefined;
+
+				if (eventMatches) {
+					const { properties, eventHandler } = handle.get(evt.type);
+					evt.stopPropagation = () => {
+						stopPropagation = true;
+					};
+					const eventResult = eventHandler.apply(properties.bind || properties, [ evt ]);
+					eventFired = true;
+					if (eventResult === false || stopPropagation === true) {
+						break;
+					}
+				}
 			}
 		}
 
