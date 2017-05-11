@@ -3,7 +3,7 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { w, v } from '../../../src/d';
 import { RegistryMixin, RegistryMixinProperties } from '../../../src/mixins/Registry';
-import { WidgetBase, DimensionsMeta, AnimationsMeta } from '../../../src/WidgetBase';
+import { WidgetBase, DimensionsMeta } from '../../../src/WidgetBase';
 import WidgetRegistry from '../../../src/WidgetRegistry';
 import { ProjectorMixin } from '../../../src/mixins/Projector';
 import { spy } from 'sinon';
@@ -28,10 +28,8 @@ class TestWithRegistry extends RegistryMixin(WidgetBase)<RegistryMixinProperties
 	}
 	render() {
 		const dimensions = this.meta(DimensionsMeta);
-		const animations = this.meta(AnimationsMeta);
-		return v('div', { key: 'foo', dimensions: true }, [
-			JSON.stringify(dimensions.get('foo')),
-			JSON.stringify(animations.get('animationId'))
+		return v('div', { key: 'foo' }, [
+			JSON.stringify(dimensions.get('foo'))
 		]);
 	}
 }

@@ -120,24 +120,6 @@ export function handleDecorator(handler: (target: any, propertyKey?: string) => 
 	};
 }
 
-interface Animation {
-	currentTime: number | undefined;
-	playbackRate: number | undefined;
-	playState: 'idle' | 'pending' | 'running' | 'paused' | 'finished' | undefined;
-	startTime: number | undefined;
-}
-
-export class AnimationsMeta {
-	get(animationId: string): Animation {
-		return {
-			currentTime: undefined,
-			playbackRate: undefined,
-			playState: undefined,
-			startTime: undefined
-		};
-	}
-}
-
 interface Dimensions {
 	scrollLeft: number | undefined;
 	scrollTop: number | undefined;
