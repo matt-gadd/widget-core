@@ -49,5 +49,32 @@ registerSuite({
 		assert.equal(domNode.getAttribute('original'), 'woop');
 		assert.equal(domNode.getAttribute('id'), 'foo');
 		assert.deepEqual(domNode.extra, { foo: 'bar' });
+	},
+
+	'callback on attached to the dom'() {
+		const domNode: any = document.createElement('custom-element');
+		domNode.foo = 'blah';
+		domNode.setAttribute('original', 'woop');
+
+		const root = document.createElement('div');
+		let addedToDom = false;
+
+		const DomNode = DomWrapper(domNode, {
+			onAttached() {
+				assert.equal(domNode.parentNode.parentNode, root);
+				addedToDom = true;
+			}
+		});
+		class Foo extends WidgetBase {
+			render() {
+				return v('div', [
+					w(DomNode, { id: 'foo', extra: { foo: 'bar' } })
+				]);
+			}
+		}
+		const Projector = ProjectorMixin(Foo);
+		const projector = new Projector();
+		projector.append(root);
+		resolveRAF();
 	}
 });
