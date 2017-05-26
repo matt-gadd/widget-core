@@ -310,17 +310,19 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		}
 
 		private eventHandlerInterceptor(propertyName: string, eventHandler: Function, domNode: Element, properties: VNodeProperties) {
-			if (eventHandlers.indexOf(propertyName) > -1) {
-				return function(this: Node, ...args: any[]) {
-					return eventHandler.apply(properties.bind || this, args);
-				};
-			}
-			else {
+			// DomWrapper passes the real domNode as a property, so use that instead if its there
+			domNode = properties.domNode || domNode;
+			if (eventHandlers.indexOf(propertyName) < 0 || properties.domNode) {
 				// remove "on" from event name
 				const eventName = propertyName.substr(2);
 				domNode.addEventListener(eventName, (...args: any[]) => {
 					eventHandler.apply(properties.bind || this, args);
 				});
+			}
+			else {
+				return function(this: Node, ...args: any[]) {
+					return eventHandler.apply(properties.bind || this, args);
+				};
 			}
 		}
 
