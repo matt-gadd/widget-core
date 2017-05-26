@@ -36,7 +36,7 @@ export function DomWrapper(domNode: Element, options: DomWrapperOptions = {}): D
 				if (key === 'classes' || key === 'styles') {
 					obj[key] = {};
 				}
-				else if (typeof prop === 'function' && key.indexOf('on') > -1) {
+				else if (typeof prop === 'function') {
 					obj[key] = prop;
 				}
 				else {
