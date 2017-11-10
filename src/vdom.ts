@@ -108,7 +108,39 @@ function getProjectionOptions(projectorOptions?: Partial<ProjectionOptions>): Pr
 		deferredRenderCallbacks: [],
 		afterRenderCallbacks: [],
 		nodeMap: new WeakMap(),
-		merge: false
+		instanceMap: new WeakMap(),
+		merge: false,
+		scheduled: false,
+		depth: 0,
+		renderQueue: [],
+		render() {
+			this.scheduled = false;
+			const renderQueue = [ ...this.renderQueue ];
+			this.renderQueue = [];
+			renderQueue.sort((a: any, b: any) => a.depth - b.depth);
+			while (renderQueue.length) {
+				const item: any = renderQueue.shift();
+				const instance = item.instance;
+				const instanceMapItem = this.instanceMap.get(instance);
+				const dnode = instanceMapItem.dnode;
+				const parentNode = instanceMapItem.parentNode;
+				if (instance.dirty) {
+					console.log('rendering', instance.constructor.name);
+					const originalDNode = dnode.rendered;
+					let updatedDNode =  instance.__render__();
+					updatedDNode = filterAndDecorateChildren(updatedDNode, instance);
+					const projectionOptions = this as any;
+					updateChildren(parentNode as any, originalDNode, updatedDNode as InternalDNode[], instance, projectionOptions);
+					dnode.rendered = updatedDNode;
+				}
+			}
+		},
+		scheduleRender() {
+			if (!this.scheduled) {
+				requestAnimationFrame(() => this.render());
+				this.scheduled = true;
+			}
+		}
 	};
 	return { ...defaults, ...projectorOptions } as ProjectionOptions;
 }
@@ -537,6 +569,8 @@ function updateChildren(
 	const newChildrenLength = newChildren.length;
 	const transitions = projectionOptions.transitions!;
 
+	projectionOptions = { ...projectionOptions, ... { depth: projectionOptions.depth + 1 } };
+
 	let oldIndex = 0;
 	let newIndex = 0;
 	let i: number;
@@ -606,6 +640,8 @@ function addChildren(
 		childNodes = arrayFrom(domNode.childNodes);
 	}
 
+	projectionOptions = { ...projectionOptions, ... { depth: projectionOptions.depth + 1 } };
+
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
 
@@ -665,7 +701,11 @@ function createDom(
 			}
 			widgetConstructor = item;
 		}
-		const instance = new widgetConstructor(parentInstance.invalidate.bind(parentInstance));
+		const invalidator = () => {
+			projectionOptions.renderQueue.push({ instance, depth: projectionOptions.depth });
+			projectionOptions.scheduleRender();
+		};
+		const instance = new widgetConstructor(invalidator);
 		dnode.instance = instance;
 		instance.__setCoreProperties__(dnode.coreProperties);
 		instance.__setChildren__(dnode.children);
@@ -676,6 +716,7 @@ function createDom(
 			dnode.rendered = filteredRendered;
 			addChildren(parentNode, filteredRendered, projectionOptions, instance as WidgetBase, insertBefore, childNodes);
 		}
+		projectionOptions.instanceMap.set(instance, { dnode, depth: projectionOptions.depth, parentNode });
 		instance.nodeHandler.addRoot();
 	}
 	else {
@@ -738,6 +779,7 @@ function updateDom(previous: any, dnode: InternalDNode, projectionOptions: Proje
 			dnode.instance = instance;
 			const rendered = instance.__render__();
 			dnode.rendered = filterAndDecorateChildren(rendered, instance);
+			projectionOptions.instanceMap.set(instance, { dnode, depth: projectionOptions.depth, parentNode });
 			if (hasRenderChanged(previousRendered, rendered)) {
 				updateChildren(parentNode, previousRendered, dnode.rendered, instance, projectionOptions);
 				instance.nodeHandler.addRoot();
@@ -874,6 +916,21 @@ function createProjection(dnode: InternalDNode | InternalDNode[], parentInstance
 	};
 }
 
+function createProjectorWNode(parentNode: Node, instance: any, dnode: InternalDNode | InternalDNode[], projectionOptions: ProjectionOptions) {
+	instance.parentInvalidate = () => {
+		projectionOptions.renderQueue.push({ instance, depth: projectionOptions.depth });
+		projectionOptions.scheduleRender();
+	};
+	projectionOptions.instanceMap.set(instance, {
+		dnode: {
+			instance,
+			rendered: dnode
+		},
+		depth: projectionOptions.depth,
+		parentNode
+	});
+}
+
 export const dom = {
 	create: function(dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
 		const finalProjectorOptions = getProjectionOptions(projectionOptions);
@@ -882,6 +939,7 @@ export const dom = {
 		const decoratedNode = filterAndDecorateChildren(dNode, instance);
 		addChildren(rootNode, decoratedNode, finalProjectorOptions, instance, undefined);
 		instance.nodeHandler.addRoot();
+		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
 		return createProjection(decoratedNode, instance, finalProjectorOptions);
@@ -892,6 +950,7 @@ export const dom = {
 		const decoratedNode = filterAndDecorateChildren(dNode, instance);
 		addChildren(parentNode, decoratedNode, finalProjectorOptions, instance, undefined);
 		instance.nodeHandler.addRoot();
+		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
 		return createProjection(decoratedNode, instance, finalProjectorOptions);
@@ -908,6 +967,7 @@ export const dom = {
 
 		createDom(decoratedNode, finalProjectorOptions.rootNode, undefined, finalProjectorOptions, instance);
 		instance.nodeHandler.addRoot();
+		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
 		return createProjection(decoratedNode, instance, finalProjectorOptions);
@@ -921,6 +981,7 @@ export const dom = {
 		finalProjectorOptions.rootNode = element.parentNode! as Element;
 		createDom(decoratedNode, element.parentNode!, element, finalProjectorOptions, instance);
 		instance.nodeHandler.addRoot();
+		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
 		element.parentNode!.removeChild(element);

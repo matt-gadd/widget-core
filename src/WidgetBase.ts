@@ -67,7 +67,7 @@ export class WidgetBase<P = WidgetProperties, C extends DNode = DNode> implement
 	/**
 	 * marker indicating if the widget requires a render
 	 */
-	private _dirty: boolean;
+	public dirty: boolean;
 
 	/**
 	 * Indicates if it is the initial set properties cycle
@@ -282,8 +282,8 @@ export class WidgetBase<P = WidgetProperties, C extends DNode = DNode> implement
 
 	public __render__(): DNode | DNode[] {
 		this._renderState = WidgetRenderState.RENDER;
-		if (this._dirty || this._cachedDNode === undefined) {
-			this._dirty = false;
+		if (this.dirty || this._cachedDNode === undefined) {
+			this.dirty = false;
 			const render = this._runBeforeRenders();
 			let dNode = render();
 			this._cachedDNode = this.runAfterRenders(dNode);
@@ -295,16 +295,16 @@ export class WidgetBase<P = WidgetProperties, C extends DNode = DNode> implement
 
 	public invalidate(): void {
 		if (this._renderState === WidgetRenderState.IDLE) {
-			this._dirty = true;
+			this.dirty = true;
 			if (this.parentInvalidate) {
 				this.parentInvalidate();
 			}
 		}
 		else if (this._renderState === WidgetRenderState.PROPERTIES) {
-			this._dirty = true;
+			this.dirty = true;
 		}
 		else if (this._renderState === WidgetRenderState.CHILDREN) {
-			this._dirty = true;
+			this.dirty = true;
 		}
 	}
 

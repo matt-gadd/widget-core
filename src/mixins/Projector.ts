@@ -89,11 +89,6 @@ export interface ProjectorMixin<P> {
 	sandbox(doc?: Document): void;
 
 	/**
-	 * Schedule a render.
-	 */
-	scheduleRender(): void;
-
-	/**
 	 * Sets the properties for the widget. Responsible for calling the diffing functions for the properties against the
 	 * previous properties. Runs though any registered specific property diff functions collecting the results and then
 	 * runs the remainder through the catch all diff function. The aggregate of the two sets of the results is then
@@ -163,7 +158,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		constructor(...args: any[]) {
 			super(...args);
 
-			this.parentInvalidate = this.scheduleRender.bind(this);
 			this._projectionOptions = {
 				transitions: cssTransitions
 			};
@@ -211,22 +205,7 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 
 		public resume() {
 			this._paused = false;
-			this.scheduleRender();
-		}
-
-		public scheduleRender() {
-			if (this.projectorState === ProjectorAttachState.Attached) {
-				this.__setProperties__(this._projectorProperties);
-				this.__setChildren__(this._projectorChildren);
-				if (!this._scheduled && !this._paused) {
-					if (this._async) {
-						this._scheduled = global.requestAnimationFrame(this._boundDoRender);
-					}
-					else {
-						this._boundDoRender();
-					}
-				}
-			}
+			this.invalidate();
 		}
 
 		public set root(root: Element) {
@@ -272,7 +251,7 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 
 		public setChildren(children: DNode[]): void {
 			this.__setChildren__(children);
-			this.scheduleRender();
+			this.invalidate();
 		}
 
 		public __setChildren__(children: DNode[]) {
@@ -282,7 +261,7 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 
 		public setProperties(properties: this['properties']): void {
 			this.__setProperties__(properties);
-			this.scheduleRender();
+			this.invalidate();
 		}
 
 		public __setProperties__(properties: this['properties']): void {

@@ -75,7 +75,13 @@ export interface ProjectionOptions extends ProjectorOptions {
 	sync: boolean;
 	mergeElement?: Element;
 	nodeMap: WeakMap<Node, WeakMap<Function, EventListener>>;
+	instanceMap: WeakMap<any, any>;
 	rootNode: Element;
+	renderQueue: any[];
+	scheduled: boolean;
+	depth: number;
+	scheduleRender: Function;
+	render: Function;
 }
 
 export interface Projection {

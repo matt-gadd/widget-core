@@ -10,6 +10,8 @@ import { HNode } from '../../src/interfaces';
 import { WidgetBase } from '../../src/WidgetBase';
 import { Registry } from '../../src/Registry';
 
+import { ProjectorMixin } from '../../src/mixins/Projector';
+
 let consoleStub: SinonStub;
 
 const resolvers = createResolvers();
@@ -51,7 +53,80 @@ class TestWidget extends WidgetBase<any> {
 	}
 }
 
-describe('vdom', () => {
+class Qux extends WidgetBase {
+	private _count = 1;
+
+	constructor(...args: any[]) {
+		super(...args);
+		setInterval(() => {
+			this._count++;
+			this.invalidate();
+		}, Math.random() * 100);
+	}
+
+	render() {
+		return v('span', {}, [
+			v('span', { styles: { 'border': '1px solid black', 'text-align': 'center', display: 'inline-block', background: 'grey', width: '100px' } }, [ `qux ${this._count} ` ])
+		]);
+	}
+}
+
+class Bar extends WidgetBase {
+	private _count = 0;
+
+	render() {
+		const { depth } = this.properties;
+		let child;
+		if (depth < 50) {
+			child= w(Bar, { depth: depth + 1 });
+		}
+		const styles = {
+			margin: '5px',
+			width: '300px'
+		};
+		if (depth === 0) {
+			styles.border = '1px solid black';
+			styles.display = 'inline-block';
+		}
+		if (depth === 50) {
+			setTimeout(() => {
+				this._count++;
+				this.invalidate();
+			}, Math.random() * 200);
+		}
+		return v('div', { styles }, [
+			v('div', [ 'a' ]),
+			v('div', [ 'b' ]),
+			v('div', [ 'c' ]),
+			v('div', [ 'd' ]),
+			v('div', [ 'e' ]),
+			v('div', [ 'f' ]),
+			v('div', { styles: {} }, [ `bar ${this._count + depth} `,  child ]),
+		]);
+	}
+}
+
+class Foo extends WidgetBase {
+	render() {
+		const children = [];
+		for (let i = 0; i < 4; i++) {
+			children.push(w(Bar, { key: i, depth: 0 }));
+		}
+		return v('span', {}, children);
+	}
+}
+
+describe('subtree', () => {
+	it('lots', () => {
+		const Projector = ProjectorMixin(Foo);
+		const projector = new Projector();
+		projector.append();
+		return new Promise((resolve) => {
+		});
+	});
+});
+
+/*describe('vdom', () => {
 	beforeEach(() => {
 		projectorStub.nodeHandler.add.reset();
 		projectorStub.nodeHandler.addRoot.reset();
@@ -2415,4 +2490,4 @@ describe('vdom', () => {
 
 	});
 
-});
+});*/
