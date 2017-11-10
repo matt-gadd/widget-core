@@ -24,6 +24,8 @@ const emptyArray: (InternalWNode | InternalHNode)[] = [];
 
 export type RenderResult = DNode<any> | DNode<any>[];
 
+export const instanceMap = new WeakMap<any, any>();
+
 export interface InternalWNode extends WNode<WidgetBase> {
 
 	/**
@@ -107,8 +109,40 @@ function getProjectionOptions(projectorOptions?: Partial<ProjectionOptions>): Pr
 		},
 		deferredRenderCallbacks: [],
 		afterRenderCallbacks: [],
+		renderQueue: [],
 		nodeMap: new WeakMap(),
-		merge: false
+		merge: false,
+		depth: 0,
+		scheduled: false,
+		render: function () {
+			let renderQueue = [ ...this.renderQueue ];
+			renderQueue = renderQueue.map((instance: any) => {
+				return instanceMap.get(instance).dnode;
+			});
+			renderQueue.sort((a: any, b: any) => {
+				return a.depth - b.depth;
+			});
+			while (renderQueue.length) {
+				const dnode = renderQueue.shift();
+				const { dirty } = instanceMap.get(dnode.instance);
+				if (dirty) {
+					const updatedDNode = dnode.instance.__render__();
+					const projectionDNode = dnode.rendered;
+					const updatedDNode = filterAndDecorateChildren(updatedDNode, dnode.instance);
+					updateChildren(dnode.rendered[0].domNode.parentNode, projectionDNode, updatedDNode as InternalDNode[], dnode.instance, this);
+					dnode.rendered = updatedDNode;
+				}
+			}
+			this.scheduled = false;
+		},
+		scheduleRender: function (this: any) {
+			if (!this.scheduled) {
+				requestAnimationFrame(() => {
+					this.render();
+				});
+			}
+			this.scheduled = true;
+		}
 	};
 	return { ...defaults, ...projectorOptions } as ProjectionOptions;
 }
@@ -538,6 +572,7 @@ function updateChildren(
 	const newChildrenLength = newChildren.length;
 	const transitions = projectionOptions.transitions!;
 
+	projectionOptions = { ...projectionOptions, ... { depth: projectionOptions.depth + 1 } };
 	let oldIndex = 0;
 	let newIndex = 0;
 	let i: number;
@@ -607,6 +642,8 @@ function addChildren(
 		childNodes = arrayFrom(domNode.childNodes);
 	}
 
+	projectionOptions = { ...projectionOptions, ... { depth: projectionOptions.depth + 1 } };
+
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
 
@@ -666,9 +703,14 @@ function createDom(
 			widgetConstructor = item;
 		}
 		const instance = new widgetConstructor();
-		instance.own(instance.on('invalidated', () => {
-			parentInstance.invalidate();
-		}));
+		instanceMap.set(instance, { dnode: dnode, dirty: true, invalidate: () => {
+			const foo = instanceMap.get(instance);
+			foo.dirty = true;
+			instanceMap.set(instance, foo);
+			projectionOptions.renderQueue.push(instance);
+			projectionOptions.scheduleRender();
+		} });
+		(dnode as any).depth = projectionOptions.depth;
 		dnode.instance = instance;
 		instance.__setCoreProperties__(dnode.coreProperties);
 		instance.__setChildren__(dnode.children);
@@ -743,6 +785,9 @@ function updateDom(previous: any, dnode: InternalDNode, projectionOptions: Proje
 			dnode.instance = instance;
 			const rendered = instance.__render__();
 			dnode.rendered = filterAndDecorateChildren(rendered, instance);
+			const foo = instanceMap.get(instance);
+			foo.dnode = dnode;
+			instanceMap.set(instance, foo);
 			if (hasRenderChanged(previousRendered, rendered)) {
 				updateChildren(parentNode, previousRendered, dnode.rendered, instance, projectionOptions);
 				projectionOptions.afterRenderCallbacks.push(() => {

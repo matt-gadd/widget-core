@@ -10,6 +10,8 @@ import { HNode } from '../../src/interfaces';
 import { WidgetBase } from '../../src/WidgetBase';
 import { Registry } from '../../src/Registry';
 
+import { ProjectorMixin } from '../../src/mixins/Projector';
+
 let consoleStub: SinonStub;
 
 const resolvers = createResolvers();
@@ -47,20 +49,75 @@ class TestWidget extends WidgetBase<any> {
 	}
 }
 
+class Qux extends WidgetBase {
+	private _count = 1;
+
+	constructor() {
+		super();
+		setInterval(() => {
+			this._count++;
+			this.invalidate();
+		}, 1500);
+	}
+
+	render() {
+		return v('div', {}, [
+			v('div', [ `another ${this._count}` ])
+		]);
+	}
+}
+
+class Bar extends WidgetBase {
+	private _count = 1;
+
+	constructor() {
+		super();
+		setInterval(() => {
+			this._count++;
+			this.invalidate();
+		}, 1000);
+	}
+
+	render() {
+		return v('div', {}, [
+			v('div', {}, [ `hello world ${this._count}` ]),
+			w(Qux, {})
+		]);
+	}
+}
+
+class Foo extends WidgetBase {
+	render() {
+		return v('div', {}, [
+			w(Bar, {})
+		]);
+	}
+}
+
 describe('vdom', () => {
 	beforeEach(() => {
-		projectorStub.on.reset();
+		/*projectorStub.on.reset();
 		projectorStub.emit.reset();
 		consoleStub = stub(console, 'warn');
-		resolvers.stub();
+		resolvers.stub();*/
 	});
 
 	afterEach(() => {
-		consoleStub.restore();
-		resolvers.restore();
+		/*consoleStub.restore();
+		resolvers.restore();*/
 	});
 
-	describe('widgets', () => {
+	describe('invalidate', () => {
+		it('should widget', () => {
+			const Projector = ProjectorMixin(Foo);
+			const projector = new Projector();
+			projector.append();
+			return new Promise((resolve) => {
+			});
+		});
+	});
+
+	/*describe('widgets', () => {
 
 		it('should create elements for widgets', () => {
 			const widget = new TestWidget();
@@ -2488,6 +2545,6 @@ describe('vdom', () => {
 
 		});
 
-	});
+	});*/
 
 });

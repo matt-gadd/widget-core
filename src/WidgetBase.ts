@@ -20,6 +20,7 @@ import {
 import RegistryHandler from './RegistryHandler';
 import NodeHandler from './NodeHandler';
 import { isWidgetBaseConstructor, WIDGET_BASE_TYPE } from './Registry';
+import { instanceMap } from './vdom';
 
 enum WidgetRenderState {
 	IDLE = 1,
@@ -281,31 +282,23 @@ export class WidgetBase<P = WidgetProperties, C extends DNode = DNode> extends E
 
 	public __render__(): DNode | DNode[] {
 		this._renderState = WidgetRenderState.RENDER;
-		if (this._dirty || this._cachedDNode === undefined) {
-			this._dirty = false;
+		const foo = instanceMap.get(this);
+		if ((foo && foo.dirty) || this._cachedDNode === undefined) {
 			const render = this._runBeforeRenders();
 			let dNode = render();
 			this._cachedDNode = this.runAfterRenders(dNode);
 			this._nodeHandler.clear();
+			if (foo) {
+				foo.dirty = false;
+			}
 		}
 		this._renderState = WidgetRenderState.IDLE;
 		return this._cachedDNode;
 	}
 
 	public invalidate(): void {
-		if (this._renderState === WidgetRenderState.IDLE) {
-			this._dirty = true;
-			this.emit({
-				type: 'invalidated',
-				target: this
-			});
-		}
-		else if (this._renderState === WidgetRenderState.PROPERTIES) {
-			this._dirty = true;
-		}
-		else if (this._renderState === WidgetRenderState.CHILDREN) {
-			this._dirty = true;
-		}
+		const foo = instanceMap.get(this);
+		foo.invalidate && foo.invalidate();
 	}
 
 	protected render(): DNode | DNode[] {
