@@ -134,10 +134,7 @@ function getProjectionOptions(projectorOptions?: Partial<ProjectionOptions>): Pr
 		styleApplyer: function(domNode: HTMLElement, styleName: string, value: string) {
 			(domNode.style as any)[styleName] = value;
 		},
-		transitions: {
-			enter: missingTransition,
-			exit: missingTransition
-		},
+		transitions: { enter: missingTransition, exit: missingTransition },
 		sync: false,
 		deferredRenderCallbacks: [],
 		afterRenderCallbacks: [],
@@ -722,7 +719,7 @@ function createDom(
 			dnode.rendered = filteredRendered;
 			addChildren(parentNode, filteredRendered, projectionOptions, instance as WidgetBase, insertBefore, childNodes);
 		}
-		projectionOptions.instanceMap.set(instance, { dnode, depth: projectionOptions.depth, parentNode });
+		projectionOptions.instanceMap.set(instance, { dnode, parentNode });
 		instance.nodeHandler.addRoot();
 	}
 	else {
@@ -785,7 +782,7 @@ function updateDom(previous: any, dnode: InternalDNode, projectionOptions: Proje
 			dnode.instance = instance;
 			const rendered = instance.__render__();
 			dnode.rendered = filterAndDecorateChildren(rendered, instance);
-			projectionOptions.instanceMap.set(instance, { dnode, depth: projectionOptions.depth, parentNode });
+			projectionOptions.instanceMap.set(instance, { dnode, parentNode });
 			if (hasRenderChanged(previousRendered, rendered)) {
 				updateChildren(parentNode, previousRendered, dnode.rendered, instance, projectionOptions);
 				instance.nodeHandler.addRoot();
@@ -904,19 +901,11 @@ function runAfterRenderCallbacks(projectionOptions: ProjectionOptions) {
 	}
 }
 
-function createProjection(dnode: InternalDNode | InternalDNode[], parentInstance: WidgetBase, projectionOptions: ProjectionOptions): Projection {
-	let projectionDNode = Array.isArray(dnode) ? dnode : [ dnode ];
-	projectionOptions.merge = false;
+function createProjection(instance: WidgetBase, projectionOptions: ProjectionOptions): Projection {
 	return {
-		update: function(updatedDNode: RenderResult) {
-			let domNode = projectionOptions.rootNode;
-
-			updatedDNode = filterAndDecorateChildren(updatedDNode, parentInstance);
-			updateChildren(domNode, projectionDNode, updatedDNode as InternalDNode[], parentInstance, projectionOptions);
-			parentInstance.nodeHandler.addRoot();
-			runDeferredRenderCallbacks(projectionOptions);
-			runAfterRenderCallbacks(projectionOptions);
-			projectionDNode = updatedDNode as InternalDNode[];
+		update: function() {
+			projectionOptions.renderQueue.push({ instance, depth: 0 });
+			scheduleRender(projectionOptions);
 		},
 		domNode: projectionOptions.rootNode
 	};
@@ -924,17 +913,10 @@ function createProjection(dnode: InternalDNode | InternalDNode[], parentInstance
 
 function createProjectorWNode(parentNode: Node, instance: any, dnode: InternalDNode | InternalDNode[], projectionOptions: ProjectionOptions) {
 	instance.parentInvalidate = () => {
-		projectionOptions.renderQueue.push({ instance, depth: projectionOptions.depth });
+		projectionOptions.renderQueue.push({ instance, depth: 0 });
 		scheduleRender(projectionOptions);
 	};
-	projectionOptions.instanceMap.set(instance, {
-		dnode: {
-			instance,
-			rendered: dnode
-		},
-		depth: projectionOptions.depth,
-		parentNode
-	});
+	projectionOptions.instanceMap.set(instance, { dnode: { instance, rendered: dnode }, parentNode });
 }
 
 export const dom = {
@@ -948,7 +930,7 @@ export const dom = {
 		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
-		return createProjection(decoratedNode, instance, finalProjectorOptions);
+		return createProjection(instance, finalProjectorOptions);
 	},
 	append: function(parentNode: Element, dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
 		const finalProjectorOptions = getProjectionOptions(projectionOptions);
@@ -959,7 +941,7 @@ export const dom = {
 		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
-		return createProjection(decoratedNode, instance, finalProjectorOptions);
+		return createProjection(instance, finalProjectorOptions);
 	},
 	merge: function(element: Element, dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
 		if (Array.isArray(dNode)) {
@@ -973,23 +955,9 @@ export const dom = {
 		createDom(decoratedNode, finalProjectorOptions.rootNode, undefined, finalProjectorOptions, instance);
 		instance.nodeHandler.addRoot();
 		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
+		finalProjectorOptions.merge = false;
 		runDeferredRenderCallbacks(finalProjectorOptions);
 		runAfterRenderCallbacks(finalProjectorOptions);
-		return createProjection(decoratedNode, instance, finalProjectorOptions);
-	},
-	replace: function(element: Element, dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
-		if (Array.isArray(dNode)) {
-			throw new Error('Unable to replace a node with an array of nodes. (consider adding one extra level to the virtual DOM)');
-		}
-		const finalProjectorOptions = getProjectionOptions(projectionOptions);
-		const decoratedNode = filterAndDecorateChildren(dNode, instance)[0] as InternalHNode;
-		finalProjectorOptions.rootNode = element.parentNode! as Element;
-		createDom(decoratedNode, element.parentNode!, element, finalProjectorOptions, instance);
-		instance.nodeHandler.addRoot();
-		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);
-		runDeferredRenderCallbacks(finalProjectorOptions);
-		runAfterRenderCallbacks(finalProjectorOptions);
-		element.parentNode!.removeChild(element);
-		return createProjection(decoratedNode, instance, finalProjectorOptions);
+		return createProjection(instance, finalProjectorOptions);
 	}
 };
