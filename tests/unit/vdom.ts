@@ -10,8 +10,6 @@ import { HNode } from '../../src/interfaces';
 import { WidgetBase } from '../../src/WidgetBase';
 import { Registry } from '../../src/Registry';
 
-import { ProjectorMixin } from '../../src/mixins/Projector';
-
 let consoleStub: SinonStub;
 
 const resolvers = createResolvers();
@@ -53,80 +51,7 @@ class TestWidget extends WidgetBase<any> {
 	}
 }
 
-class Qux extends WidgetBase {
-	private _count = 1;
-
-	constructor(...args: any[]) {
-		super(...args);
-		setInterval(() => {
-			this._count++;
-			this.invalidate();
-		}, Math.random() * 100);
-	}
-
-	render() {
-		return v('span', {}, [
-			v('span', { styles: { 'border': '1px solid black', 'text-align': 'center', display: 'inline-block', background: 'grey', width: '100px' } }, [ `qux ${this._count} ` ])
-		]);
-	}
-}
-
-class Bar extends WidgetBase {
-	private _count = 0;
-
-	render() {
-		const { depth } = this.properties;
-		let child;
-		if (depth < 80) {
-			child= w(Bar, { depth: depth + 1, foo: [ 1, 2, 3, 4 ] });
-		}
-		const styles = {
-			margin: '5px',
-			width: '300px'
-		};
-		if (depth === 0) {
-			styles.border = '1px solid black';
-			styles.display = 'inline-block';
-		}
-		if (depth === 80) {
-			setTimeout(() => {
-				this._count++;
-				this.invalidate();
-			}, Math.random() * 200);
-		}
-		return v('div', { styles }, [
-			v('div', [ 'a' ]),
-			v('div', [ 'b' ]),
-			v('div', [ 'c' ]),
-			v('div', [ 'd' ]),
-			v('div', [ 'e' ]),
-			v('div', [ 'f' ]),
-			v('div', { styles: {} }, [ `bar ${this._count + depth} `,  child ])
-		]);
-	}
-}
-
-class Foo extends WidgetBase {
-	render() {
-		const children = [];
-		for (let i = 0; i < 10; i++) {
-			children.push(w(Bar, { key: i, depth: 0, foo: [ 1, 2, 3, 4 ] }));
-		}
-		return v('span', {}, children);
-	}
-}
-
-describe('subtree', () => {
-	it('lots', () => {
-		const Projector = ProjectorMixin(Foo);
-		const projector = new Projector();
-		projector.append();
-		return new Promise((resolve) => {
-		});
-	});
-});
-
-/*describe('vdom', () => {
+describe('vdom', () => {
 	beforeEach(() => {
 		projectorStub.nodeHandler.add.reset();
 		projectorStub.nodeHandler.addRoot.reset();
@@ -146,8 +71,7 @@ describe('subtree', () => {
 			widget.__setCoreProperties__({ bind: widget } as any);
 			widget.__setProperties__({ show: true });
 
-			const renderResult = widget.__render__() as HNode;
-			const projection = dom.create(renderResult, widget);
+			const projection = dom.create(widget, {});
 			const span = (projection.domNode.childNodes[0] as Element) as HTMLSpanElement;
 			assert.lengthOf(span.childNodes, 1);
 			const div = span.childNodes[0] as HTMLDivElement;
@@ -180,8 +104,7 @@ describe('subtree', () => {
 			widget.__setCoreProperties__({ bind: widget } as any);
 			widget.__setProperties__({ show: true });
 
-			const renderResult = widget.__render__() as HNode;
-			const projection = dom.create(renderResult, widget);
+			const projection = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element) as HTMLSpanElement;
 
 			assert.lengthOf(root.childNodes, 1);
@@ -210,7 +133,7 @@ describe('subtree', () => {
 			assert.strictEqual(headerTwo.innerHTML, 'span');
 
 			widget.__setProperties__({ show: false });
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 
 			assert.lengthOf(root.childNodes, 1);
 			rootChild = root.childNodes[0] as HTMLDivElement;
@@ -234,7 +157,7 @@ describe('subtree', () => {
 			assert.strictEqual(headerTwo.innerHTML, 'span');
 
 			widget.__setProperties__({ show: true });
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 
 			assert.lengthOf(root.childNodes, 1);
 			rootChild = root.childNodes[0] as HTMLDivElement;
@@ -293,10 +216,7 @@ describe('subtree', () => {
 			}
 
 			const widget = new Baz();
-			const projection = dom.create(
-				widget.__render__() as HNode,
-				widget
-			);
+			const projection = dom.create(widget);
 
 			const root = (projection.domNode.childNodes[0] as Element) as HTMLElement;
 			assert.lengthOf(root.childNodes, 1);
@@ -306,7 +226,7 @@ describe('subtree', () => {
 			assert.lengthOf(fooDiv.childNodes, 1);
 			const fooTextNode = fooDiv.childNodes[0] as Text;
 			assert.strictEqual(fooTextNode.data, 'first');
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.lengthOf(root.childNodes, 1);
 			assert.strictEqual(root.childNodes[0], barDiv);
 			assert.lengthOf(barDiv.childNodes, 1);
@@ -315,7 +235,7 @@ describe('subtree', () => {
 			assert.strictEqual(fooDiv.childNodes[0], fooTextNode);
 			assert.strictEqual(fooTextNode.data, 'first');
 			sendEvent(fooDiv, 'click');
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.lengthOf(root.childNodes, 1);
 			assert.strictEqual(root.childNodes[0], barDiv);
 			assert.lengthOf(barDiv.childNodes, 1);
@@ -360,10 +280,7 @@ describe('subtree', () => {
 			}
 
 			const widget = new App();
-			const projection: any = dom.create(
-				widget.__render__() as HNode,
-				widget
-			);
+			const projection: any = dom.create(widget);
 			sendEvent(projection.domNode.childNodes[0], 'click', { eventInit: { bubbles: false } });
 			sendEvent(projection.domNode.childNodes[0].childNodes[0], 'click', { eventInit: { bubbles: false } });
 			sendEvent(projection.domNode.childNodes[0].childNodes[0].childNodes[0], 'click', { eventInit: { bubbles: false } });
@@ -398,7 +315,7 @@ describe('subtree', () => {
 
 			const widget = new Baz();
 			widget.__setCoreProperties__({ bind: widget, baseRegistry });
-			const projection: any = dom.create(widget.__render__() as HNode, widget);
+			const projection: any = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element);
 			const headerOne = root.childNodes[0];
 			const headerOneText = headerOne.childNodes[0] as Text;
@@ -433,12 +350,12 @@ describe('subtree', () => {
 
 			const widget = new Baz();
 			widget.__setCoreProperties__({ bind: widget, baseRegistry });
-			const projection: any = dom.create(widget.__render__() as HNode, widget);
+			const projection: any = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element);
 			assert.lengthOf(root.childNodes, 0);
 			baseRegistry.define('foo', Foo);
 			baseRegistry.define('bar', Bar);
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			const headerOne = root.childNodes[0];
 			const headerOneText = headerOne.childNodes[0] as Text;
 			const headerTwo = root.childNodes[1];
@@ -472,8 +389,7 @@ describe('subtree', () => {
 			}
 
 			const widget = new Bar();
-			const renderResult = widget.__render__() as HNode;
-			const projection: any = dom.create(renderResult, widget);
+			const projection: any = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element);
 			assert.lengthOf(root.childNodes, 3);
 			const childOne = root.childNodes[0];
@@ -520,7 +436,7 @@ describe('subtree', () => {
 			}
 
 			const widget = new Baz();
-			const projection: any = dom.create(widget.__render__() as HNode, widget);
+			const projection: any = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element);
 			assert.lengthOf(root.childNodes, 0);
 		});
@@ -531,8 +447,8 @@ describe('subtree', () => {
 
 				private myClass = false;
 
-				constructor(invalidate: Function) {
-					super(invalidate);
+				constructor() {
+					super();
 					fooInvalidate = this.invalidate.bind(this);
 				}
 
@@ -566,11 +482,11 @@ describe('subtree', () => {
 			}
 
 			const widget = new Baz();
-			const projection: any = dom.create(widget.__render__() as HNode, widget);
+			const projection: any = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element);
 			assert.lengthOf(root.childNodes, 0);
 			widget.show = true;
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.lengthOf(root.childNodes, 1);
 			const fooDiv = root.childNodes[0] as HTMLDivElement;
 			assert.lengthOf(fooDiv.classList, 1);
@@ -578,7 +494,7 @@ describe('subtree', () => {
 			const fooDivContent = fooDiv.childNodes[0] as Text;
 			assert.strictEqual(fooDivContent.data, 'content');
 			fooInvalidate();
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.lengthOf(fooDiv.classList, 0);
 			assert.lengthOf(fooDiv.childNodes, 1);
 		});
@@ -599,13 +515,13 @@ describe('subtree', () => {
 
 			const widget = new Baz();
 			widget.__setProperties__({ foo: 'foo' });
-			const projection = dom.create(widget.__render__() as HNode, widget);
+			const projection = dom.create(widget);
 			const root = projection.domNode.childNodes[0] as Element;
 			assert.lengthOf(root.childNodes, 1);
 			let textNodeOne = root.childNodes[0] as Text;
 			assert.strictEqual(textNodeOne.data, 'Hello, foo!');
 			widget.__setProperties__({ foo: 'bar' });
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			textNodeOne = root.childNodes[0] as Text;
 			assert.strictEqual(textNodeOne.data, 'Hello, bar!');
 		});
@@ -628,7 +544,7 @@ describe('subtree', () => {
 			}
 
 			const widget = new Bar();
-			const projection = dom.create(widget.__render__() as HNode, widget);
+			const projection = dom.create(widget);
 			const root = projection.domNode;
 			assert.lengthOf(root.childNodes, 3);
 			const firstTextNodeChild = root.childNodes[0].childNodes[0] as Text;
@@ -653,7 +569,7 @@ describe('subtree', () => {
 			}
 
 			const widget = new Foo();
-			const projection = dom.create(widget.__render__() as HNode, widget);
+			const projection = dom.create(widget);
 			const root = projection.domNode;
 			assert.lengthOf(root.childNodes, 3);
 			const firstTextNodeChild = root.childNodes[0].childNodes[0] as Text;
@@ -663,7 +579,7 @@ describe('subtree', () => {
 			assert.strictEqual(secondTextNodeChild.data, '2');
 			assert.strictEqual(thirdTextNodeChild.data, '3');
 			widget.invalidate();
-			projection.update(widget.__render__());
+			projection.update();
 			assert.lengthOf(root.childNodes, 1);
 			const textNodeChild = root.childNodes[0].childNodes[0] as Text;
 			assert.strictEqual(textNodeChild.data, '2');
@@ -682,7 +598,7 @@ describe('subtree', () => {
 
 			const div = document.createElement('div');
 			const widget = new Foo();
-			const projection = dom.append(div, widget.__render__() as HNode, widget);
+			const projection = dom.append(div, widget);
 			const root = projection.domNode as Element;
 			assert.lengthOf(root.childNodes, 3);
 			const firstTextNodeChild = root.childNodes[0].childNodes[0] as Text;
@@ -712,7 +628,7 @@ describe('subtree', () => {
 
 			const div = document.createElement('div');
 			const widget = new Bar();
-			const projection = dom.append(div, widget.__render__() as HNode, widget);
+			const projection = dom.append(div, widget);
 			const root = projection.domNode;
 			assert.lengthOf(root.childNodes, 3);
 			const firstTextNodeChild = root.childNodes[0].childNodes[0] as Text;
@@ -747,7 +663,7 @@ describe('subtree', () => {
 				w(Bar, { key: '2' })
 			]);
 			widget.__setProperties__({ selected: 0 });
-			const projection = dom.create(widget.__render__(), widget);
+			const projection = dom.create(widget);
 			const root = projection.domNode.childNodes[0];
 			assert.lengthOf(root.childNodes, 2);
 			let firstTextNode = root.childNodes[0].childNodes[0] as Text;
@@ -755,7 +671,7 @@ describe('subtree', () => {
 			assert.strictEqual(firstTextNode.data, 'selected');
 			assert.strictEqual(secondTextNode.data, 'not selected');
 			widget.__setProperties__({ selected: 1 });
-			projection.update(widget.__render__());
+			projection.update();
 			firstTextNode = root.childNodes[0].childNodes[0] as Text;
 			secondTextNode = root.childNodes[1].childNodes[0] as Text;
 			assert.strictEqual(firstTextNode.data, 'not selected');
@@ -776,26 +692,8 @@ describe('subtree', () => {
 			const div = document.createElement('div');
 			const widget = new Foo();
 			assert.throws(() => {
-				dom.merge(div, widget.__render__() as HNode, widget);
+				dom.merge(div, widget);
 			}, Error, 'Unable to merge an array of nodes. (consider adding one extra level to the virtual DOM)');
-		});
-
-		it('should throw an error when attempting to replace with an array of node', () => {
-			class Foo extends WidgetBase {
-				render() {
-					return [
-						v('div', [ '1' ]),
-						v('div', [ '2' ]),
-						v('div', [ '3' ])
-					];
-				}
-			}
-
-			const div = document.createElement('div');
-			const widget = new Foo();
-			assert.throws(() => {
-				dom.replace(div, widget.__render__() as HNode, widget);
-			}, Error, 'Unable to replace a node with an array of nodes. (consider adding one extra level to the virtual DOM)');
 		});
 
 		it('removes existing widget and uses new widget when widget changes', () => {
@@ -841,11 +739,11 @@ describe('subtree', () => {
 			}
 
 			const widget = new Baz();
-			const projection = dom.create(widget.__render__() as HNode, widget);
+			const projection = dom.create(widget);
 			resolvers.resolve();
 			assert.isTrue(fooCreated);
 			widget.foo = false;
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			resolvers.resolve();
 			assert.strictEqual(barCreatedCount, 3);
 		});
@@ -879,12 +777,12 @@ describe('subtree', () => {
 			}
 
 			const widget = new Baz();
-			const projection = dom.create(widget.__render__() as HNode, widget);
+			const projection = dom.create(widget);
 			const root = (projection.domNode.childNodes[0] as Element);
 			const fooDiv = root.childNodes[0] as HTMLDivElement;
 			assert.strictEqual(fooDiv.getAttribute('id'), 'foo');
 			widget.show = false;
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.isNull(fooDiv.parentNode);
 		});
 
@@ -919,11 +817,11 @@ describe('subtree', () => {
 			}
 
 			const widget = new Baz();
-			const projection = dom.create(widget.__render__() as HNode, widget);
+			const projection = dom.create(widget);
 			assert.isTrue(consoleStub.notCalled);
 			widget.invalidate();
 			widget.show = true;
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.isTrue(consoleStub.calledTwice);
 			assert.isTrue(consoleStub.calledWith(errorMsg));
 		});
@@ -974,7 +872,7 @@ describe('subtree', () => {
 					}
 				}
 				const widget = new Bar();
-				dom.merge(root, widget.__render__() as HNode, widget);
+				dom.merge(root, widget);
 				assert.strictEqual(root.className, 'foo bar', 'should have added bar class');
 				assert.strictEqual(root.childElementCount, childElementCount, 'should have the same number of children');
 				assert.strictEqual(select, root.childNodes[1], 'should have been reused');
@@ -1047,7 +945,7 @@ describe('subtree', () => {
 					}
 				}
 				const widget = new Bar();
-				dom.merge(root, widget.__render__() as HNode, widget);
+				dom.merge(root, widget);
 				assert.strictEqual(root.className, 'foo bar', 'should have added bar class');
 				assert.strictEqual(root.childElementCount, childElementCount, 'should have the same number of children');
 				assert.strictEqual(label, root.childNodes[0], 'should have been reused');
@@ -1134,7 +1032,7 @@ describe('subtree', () => {
 					}
 				}
 				const widget = new Bar();
-				dom.merge(root, widget.__render__() as HNode, widget);
+				dom.merge(root, widget);
 				assert.strictEqual(root.className, 'foo bar', 'should have added bar class');
 				assert.strictEqual(root.childElementCount, childElementCount, 'should have the same number of children');
 				assert.strictEqual(label, root.childNodes[1], 'should have been reused');
@@ -2060,7 +1958,7 @@ describe('subtree', () => {
 				}
 			}
 			const widget = new Foo();
-			dom.merge(root, widget.__render__() as HNode, widget);
+			dom.merge(root, widget);
 			assert.strictEqual(root.className, 'foo bar', 'should have added bar class');
 			assert.strictEqual(root.childElementCount, childElementCount, 'should have the same number of children');
 			assert.strictEqual(select, root.childNodes[1], 'should have been reused');
@@ -2128,7 +2026,7 @@ describe('subtree', () => {
 				}
 			}
 			const widget = new Foo();
-			dom.merge(root, widget.__render__() as HNode, widget);
+			dom.merge(root, widget);
 			assert.strictEqual(root.className, 'foo bar', 'should have added bar class');
 			assert.strictEqual(root.childElementCount, childElementCount, 'should have the same number of children');
 			assert.strictEqual(label, root.childNodes[0], 'should have been reused');
@@ -2210,7 +2108,7 @@ describe('subtree', () => {
 				}
 			}
 			const widget = new Foo();
-			dom.merge(root, widget.__render__() as HNode, widget);
+			dom.merge(root, widget);
 			assert.strictEqual(root.className, 'foo bar', 'should have added bar class');
 			assert.strictEqual(root.childElementCount, childElementCount, 'should have the same number of children');
 			assert.strictEqual(label, root.childNodes[1], 'should have been reused');
@@ -2257,13 +2155,13 @@ describe('subtree', () => {
 				}
 			}
 			const widget = new Foo();
-			const projection = dom.merge(root, widget.__render__() as HNode, widget);
+			const projection = dom.merge(root, widget);
 			const projectionRoot = projection.domNode.childNodes[0] as Element;
 			assert.lengthOf(projectionRoot.childNodes, 1, 'should have 1 child');
 
 			firstRender = false;
 			widget.invalidate();
-			projection.update(widget.__render__() as HNode);
+			projection.update();
 			assert.lengthOf(projectionRoot.childNodes, 2, 'should have 2 child');
 			document.body.removeChild(iframe);
 		});
@@ -2490,4 +2388,4 @@ describe('subtree', () => {
 
 	});
 
-});*/
+});
