@@ -946,11 +946,15 @@ function createProjectorWNode(parentNode: Node, instance: any, dnode: InternalDN
 		projectionOptions.renderQueue.push({ instance, depth: 0 });
 		scheduleRender(projectionOptions);
 	};
-	projectionOptions.instanceMap.set(instance, { dnode: { instance, rendered: dnode }, parentNode });
+	projectionOptions.instanceMap.set(instance, {
+		dnode: { instance, rendered: dnode },
+		parentNode
+	});
 }
 
 export const dom = {
-	create: function(dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
+	create: function(instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
+		const dNode = instance.__render__();
 		const finalProjectorOptions = getProjectionOptions(projectionOptions);
 		const rootNode = document.createElement('div');
 		finalProjectorOptions.rootNode = rootNode;
@@ -962,7 +966,8 @@ export const dom = {
 		runAfterRenderCallbacks(finalProjectorOptions);
 		return createProjection(instance, finalProjectorOptions);
 	},
-	append: function(parentNode: Element, dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
+	append: function(parentNode: Element, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
+		const dNode = instance.__render__();
 		const finalProjectorOptions = getProjectionOptions(projectionOptions);
 		finalProjectorOptions.rootNode = parentNode;
 		const decoratedNode = filterAndDecorateChildren(dNode, instance);
@@ -973,7 +978,8 @@ export const dom = {
 		runAfterRenderCallbacks(finalProjectorOptions);
 		return createProjection(instance, finalProjectorOptions);
 	},
-	merge: function(element: Element, dNode: RenderResult, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
+	merge: function(element: Element, instance: WidgetBase<any, any>, projectionOptions?: Partial<ProjectionOptions>): Projection {
+		const dNode = instance.__render__();
 		if (Array.isArray(dNode)) {
 			throw new Error('Unable to merge an array of nodes. (consider adding one extra level to the virtual DOM)');
 		}

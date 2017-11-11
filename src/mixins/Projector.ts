@@ -128,7 +128,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		private _attachHandle: Handle;
 		private _projectionOptions: Partial<ProjectionOptions>;
 		private _projection: Projection | undefined;
-		private _boundRender: Function;
 		private _projectorChildren: DNode[] = [];
 		private _projectorProperties: this['properties'] = {} as this['properties'];
 		private _rootTagName: string;
@@ -138,7 +137,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		constructor(...args: any[]) {
 			super(...args);
 			this._projectionOptions = { transitions: cssTransitions };
-			this._boundRender = this.__render__.bind(this);
 			this.root = document.body;
 			this.projectorState = ProjectorAttachState.Detached;
 		}
@@ -264,15 +262,15 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 			this.own(handle);
 			this._attachHandle = createHandle(handle);
 
-			this._projectionOptions = { ...this._projectionOptions, ...{ sync: this.sync } };
+			this._projectionOptions = { ...this._projectionOptions, sync: this.sync };
 
 			switch (type) {
 				case AttachType.Append:
-					this._projection = dom.append(this.root, this._boundRender(), this, this._projectionOptions);
+					this._projection = dom.append(this.root, this, this._projectionOptions);
 				break;
 				case AttachType.Merge:
 					this._rootTagName = this._root.tagName.toLowerCase();
-					this._projection = dom.merge(this.root, this._boundRender(), this , this._projectionOptions);
+					this._projection = dom.merge(this.root, this, this._projectionOptions);
 				break;
 			}
 
