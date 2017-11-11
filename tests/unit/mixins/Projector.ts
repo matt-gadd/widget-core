@@ -148,20 +148,6 @@ registerSuite('mixins/projectorMixin', {
 					assert.strictEqual(child.tagName.toLowerCase(), 'div');
 					assert.strictEqual((child.firstChild as HTMLElement).tagName.toLowerCase(), 'h2');
 			},
-			'replace'() {
-					const projector = new class extends BaseTestWidget {
-						render() {
-							return v('body', this.children);
-						}
-					}();
-
-					projector.setChildren([ v('h2', [ 'foo' ] ) ]);
-					projector.replace();
-					assert.strictEqual(document.body.childNodes.length, 1, 'child should have been added');
-					const child = document.body.lastChild as HTMLElement;
-					assert.strictEqual(child.innerHTML, 'foo');
-					assert.strictEqual(child.tagName.toLowerCase(), 'h2');
-			},
 			'merge': {
 				'standard'() {
 					const div = document.createElement('div');
@@ -192,9 +178,7 @@ registerSuite('mixins/projectorMixin', {
 				assert.strictEqual(child.innerHTML, '<h2>foo</h2>');
 				assert.strictEqual(child.tagName.toLocaleLowerCase(), 'div');
 				assert.strictEqual((child.firstChild as HTMLElement).tagName.toLocaleLowerCase(), 'h2');
-
 				projector.destroy();
-				assert.strictEqual(projector.root, document.body, 'Root should be reverted to document.body');
 			},
 			'operates synchronously'() {
 				let count = 0;
@@ -230,31 +214,6 @@ registerSuite('mixins/projectorMixin', {
 			projector.root = root;
 			assert.equal(projector.root, root);
 		},
-		'pause'() {
-			const projector = new BaseTestWidget();
-
-			projector.append();
-
-			projector.pause();
-			projector.scheduleRender();
-			assert.isFalse(rafStub.called);
-		},
-		'pause cancels animation frame if scheduled'() {
-			const projector = new BaseTestWidget();
-
-			projector.append();
-
-			projector.scheduleRender();
-			projector.pause();
-			assert.isTrue(cancelRafStub.called);
-		},
-		'resume'() {
-			const projector = new BaseTestWidget();
-			spy(projector, 'scheduleRender');
-			assert.isFalse((projector.scheduleRender as any).called);
-			projector.resume();
-			assert.isTrue((projector.scheduleRender as any).called);
-		},
 		'get projector state'() {
 			const projector = new BaseTestWidget();
 
@@ -264,19 +223,19 @@ registerSuite('mixins/projectorMixin', {
 			projector.destroy();
 			assert.equal(projector.projectorState, ProjectorAttachState.Detached);
 		},
-		'async': {
-			'can set async mode on projector'() {
+		'sync': {
+			'can set sync mode on projector'() {
 				const projector = new BaseTestWidget();
-				assert.isTrue(projector.async);
-				projector.async = false;
-				assert.isFalse(projector.async);
+				assert.isFalse(projector.sync);
+				projector.sync = true;
+				assert.isTrue(projector.sync);
 			},
-			'cannot set async mode on projector that is already attached'() {
+			'cannot set sync mode on projector that is already attached'() {
 				const projector = new BaseTestWidget();
 				projector.append();
 				assert.throws(() => {
-					projector.async = false;
-				}, Error, 'Projector already attached, cannot change async mode');
+					projector.sync = true;
+				}, Error, 'Projector already attached, cannot change sync mode');
 			}
 		},
 		'toHtml()': {
@@ -288,20 +247,6 @@ registerSuite('mixins/projectorMixin', {
 				projector.append(div);
 				assert.strictEqual(projector.toHtml(), `<div><h2>foo</h2></div>`);
 				assert.strictEqual(projector.toHtml(), (projector.root.lastChild as Element).outerHTML);
-				projector.destroy();
-			},
-			'replaced'() {
-				const div = document.createElement('div');
-				const root = document.createElement('div');
-				document.body.appendChild(root);
-				root.appendChild(div);
-
-				const projector = new BaseTestWidget();
-				projector.setChildren([ v('h2', [ 'foo' ]) ]);
-
-				projector.replace(div);
-				assert.strictEqual(projector.toHtml(), `<div><h2>foo</h2></div>`);
-				assert.strictEqual(projector.toHtml(), (root.lastChild as Element).outerHTML);
 				projector.destroy();
 			},
 			'merged'() {
@@ -324,19 +269,6 @@ registerSuite('mixins/projectorMixin', {
 					projector.toHtml();
 				}, Error, 'Projector is not attached, cannot return an HTML string of projection.');
 			}
-		},
-		'destroy'() {
-			const projector = new BaseTestWidget();
-			const projectorStopSpy = spy(projector, 'pause');
-
-			projector.append();
-			projector.destroy();
-
-			assert.isTrue(projectorStopSpy.calledOnce);
-
-			projector.destroy();
-
-			assert.isTrue(projectorStopSpy.calledOnce);
 		},
 		'setProperties guards against original property interface'() {
 			interface Props {
@@ -461,7 +393,7 @@ registerSuite('mixins/projectorMixin', {
 			}
 
 			const projector = new TestProjector();
-			projector.async = false;
+			projector.sync = false;
 			projector.append();
 
 			children = [ v('div', {
@@ -504,7 +436,7 @@ registerSuite('mixins/projectorMixin', {
 			}
 
 			const projector = new TestProjector();
-			projector.async = false;
+			projector.sync = false;
 			projector.append();
 
 			children = [ v('div', {
@@ -555,7 +487,7 @@ registerSuite('mixins/projectorMixin', {
 			}
 
 			const projector = new TestProjector();
-			projector.async = false;
+			projector.sync = false;
 			projector.append();
 
 			const domNode = document.getElementById('test-element')!;

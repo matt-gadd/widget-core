@@ -86,6 +86,8 @@ export interface ProjectorMixin<P> {
 	 */
 	setChildren(children: DNode[]): void;
 
+	scheduleRender(): void;
+
 	/**
 	 * Return a `string` that represents the HTML of the current projection.  The projector needs to be attached.
 	 */
@@ -178,10 +180,7 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 				throw new Error('Projector already attached, cannot create sandbox');
 			}
 			this.sync = true;
-			this._attach({
-				root: doc.createDocumentFragment() as any,
-				type: AttachType.Append
-			});
+			this._attach({ root: doc.createDocumentFragment() as any, type: AttachType.Append });
 		}
 
 		public setChildren(children: DNode[]): void {
