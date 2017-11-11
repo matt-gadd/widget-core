@@ -95,6 +95,39 @@ const missingTransition = function() {
 	throw new Error('Provide a transitions object to the projectionOptions to do animations');
 };
 
+function render(projectionOptions: ProjectionOptions) {
+	projectionOptions.scheduled = false;
+	const renderQueue = [ ...projectionOptions.renderQueue ];
+	projectionOptions.renderQueue = [];
+	renderQueue.sort((a: any, b: any) => a.depth - b.depth);
+	while (renderQueue.length) {
+		const item: any = renderQueue.shift();
+		const instance = item.instance;
+		const instanceMapItem = projectionOptions.instanceMap.get(instance);
+		const dnode = instanceMapItem.dnode;
+		const parentNode = instanceMapItem.parentNode;
+		if (instance.dirty) {
+			const originalDNode = dnode.rendered;
+			let updatedDNode =  instance.__render__();
+			updatedDNode = filterAndDecorateChildren(updatedDNode, instance);
+			updateChildren(parentNode, originalDNode, updatedDNode as InternalDNode[], instance, projectionOptions);
+			dnode.rendered = updatedDNode;
+		}
+	}
+}
+
+function scheduleRender(projectionOptions: ProjectionOptions) {
+	if (!projectionOptions.scheduled) {
+		if (projectionOptions.sync) {
+			render(projectionOptions);
+		}
+		else {
+			requestAnimationFrame(() => render(projectionOptions));
+		}
+		projectionOptions.scheduled = true;
+	}
+}
+
 function getProjectionOptions(projectorOptions?: Partial<ProjectionOptions>): ProjectionOptions {
 	const defaults = {
 		namespace: undefined,
@@ -105,6 +138,7 @@ function getProjectionOptions(projectorOptions?: Partial<ProjectionOptions>): Pr
 			enter: missingTransition,
 			exit: missingTransition
 		},
+		sync: false,
 		deferredRenderCallbacks: [],
 		afterRenderCallbacks: [],
 		nodeMap: new WeakMap(),
@@ -112,35 +146,7 @@ function getProjectionOptions(projectorOptions?: Partial<ProjectionOptions>): Pr
 		merge: false,
 		scheduled: false,
 		depth: 0,
-		renderQueue: [],
-		render() {
-			this.scheduled = false;
-			const renderQueue = [ ...this.renderQueue ];
-			this.renderQueue = [];
-			renderQueue.sort((a: any, b: any) => a.depth - b.depth);
-			while (renderQueue.length) {
-				const item: any = renderQueue.shift();
-				const instance = item.instance;
-				const instanceMapItem = this.instanceMap.get(instance);
-				const dnode = instanceMapItem.dnode;
-				const parentNode = instanceMapItem.parentNode;
-				if (instance.dirty) {
-					console.log('rendering', instance.constructor.name);
-					const originalDNode = dnode.rendered;
-					let updatedDNode =  instance.__render__();
-					updatedDNode = filterAndDecorateChildren(updatedDNode, instance);
-					const projectionOptions = this as any;
-					updateChildren(parentNode as any, originalDNode, updatedDNode as InternalDNode[], instance, projectionOptions);
-					dnode.rendered = updatedDNode;
-				}
-			}
-		},
-		scheduleRender() {
-			if (!this.scheduled) {
-				requestAnimationFrame(() => this.render());
-				this.scheduled = true;
-			}
-		}
+		renderQueue: []
 	};
 	return { ...defaults, ...projectorOptions } as ProjectionOptions;
 }
@@ -703,7 +709,7 @@ function createDom(
 		}
 		const invalidator = () => {
 			projectionOptions.renderQueue.push({ instance, depth: projectionOptions.depth });
-			projectionOptions.scheduleRender();
+			scheduleRender(projectionOptions);
 		};
 		const instance = new widgetConstructor(invalidator);
 		dnode.instance = instance;
@@ -919,7 +925,7 @@ function createProjection(dnode: InternalDNode | InternalDNode[], parentInstance
 function createProjectorWNode(parentNode: Node, instance: any, dnode: InternalDNode | InternalDNode[], projectionOptions: ProjectionOptions) {
 	instance.parentInvalidate = () => {
 		projectionOptions.renderQueue.push({ instance, depth: projectionOptions.depth });
-		projectionOptions.scheduleRender();
+		scheduleRender(projectionOptions);
 	};
 	projectionOptions.instanceMap.set(instance, {
 		dnode: {
@@ -964,7 +970,6 @@ export const dom = {
 		finalProjectorOptions.mergeElement = element;
 		finalProjectorOptions.rootNode = element.parentNode as Element;
 		const decoratedNode = filterAndDecorateChildren(dNode, instance)[0] as InternalHNode;
-
 		createDom(decoratedNode, finalProjectorOptions.rootNode, undefined, finalProjectorOptions, instance);
 		instance.nodeHandler.addRoot();
 		createProjectorWNode(finalProjectorOptions.rootNode, instance, decoratedNode, finalProjectorOptions);

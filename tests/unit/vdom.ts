@@ -77,8 +77,8 @@ class Bar extends WidgetBase {
 	render() {
 		const { depth } = this.properties;
 		let child;
-		if (depth < 50) {
-			child= w(Bar, { depth: depth + 1 });
+		if (depth < 80) {
+			child= w(Bar, { depth: depth + 1, foo: [ 1, 2, 3, 4 ] });
 		}
 		const styles = {
 			margin: '5px',
@@ -88,7 +88,7 @@ class Bar extends WidgetBase {
 			styles.border = '1px solid black';
 			styles.display = 'inline-block';
 		}
-		if (depth === 50) {
+		if (depth === 80) {
 			setTimeout(() => {
 				this._count++;
 				this.invalidate();
@@ -101,7 +101,7 @@ class Bar extends WidgetBase {
 			v('div', [ 'd' ]),
 			v('div', [ 'e' ]),
 			v('div', [ 'f' ]),
-			v('div', { styles: {} }, [ `bar ${this._count + depth} `,  child ]),
+			v('div', { styles: {} }, [ `bar ${this._count + depth} `,  child ])
 		]);
 	}
 }
@@ -109,8 +109,8 @@ class Bar extends WidgetBase {
 class Foo extends WidgetBase {
 	render() {
 		const children = [];
-		for (let i = 0; i < 4; i++) {
-			children.push(w(Bar, { key: i, depth: 0 }));
+		for (let i = 0; i < 10; i++) {
+			children.push(w(Bar, { key: i, depth: 0, foo: [ 1, 2, 3, 4 ] }));
 		}
 		return v('span', {}, children);
 	}

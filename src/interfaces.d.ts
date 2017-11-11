@@ -80,8 +80,6 @@ export interface ProjectionOptions extends ProjectorOptions {
 	renderQueue: any[];
 	scheduled: boolean;
 	depth: number;
-	scheduleRender: Function;
-	render: Function;
 }
 
 export interface Projection {
