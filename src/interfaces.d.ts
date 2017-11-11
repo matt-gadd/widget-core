@@ -57,36 +57,6 @@ export type MouseWheelEventHandler = (event?: MouseWheelEvent | WheelEvent) => E
 export type ScrollEventHandler = (event?: UIEvent) => EventHandlerResult;
 export type SubmitEventHandler = EventHandler;
 
-export interface TransitionStrategy {
-	enter(element: Element, properties: VirtualDomProperties, enterAnimation: string): void;
-	exit(element: Element, properties: VirtualDomProperties, exitAnimation: string, removeElement: () => void): void;
-}
-
-export interface ProjectorOptions {
-	readonly transitions?: TransitionStrategy;
-	styleApplyer?(domNode: HTMLElement, styleName: string, value: string): void;
-}
-
-export interface ProjectionOptions extends ProjectorOptions {
-	namespace?: string;
-	deferredRenderCallbacks: Function [];
-	afterRenderCallbacks: Function[];
-	merge: boolean;
-	sync: boolean;
-	mergeElement?: Element;
-	nodeMap: WeakMap<Node, WeakMap<Function, EventListener>>;
-	instanceMap: WeakMap<any, any>;
-	rootNode: Element;
-	renderQueue: any[];
-	scheduled: boolean;
-	depth: number;
-}
-
-export interface Projection {
-	readonly domNode: Element;
-	update(updatedDNode: DNode | DNode[]): void;
-}
-
 export type SupportedClassName = string | null | undefined;
 
 export type DeferredVirtualProperties = (inserted: boolean) => VirtualDomProperties;

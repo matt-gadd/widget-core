@@ -4,10 +4,7 @@ import {
 	DNode,
 	HNode,
 	WNode,
-	ProjectionOptions,
-	Projection,
 	SupportedClassName,
-	TransitionStrategy,
 	VirtualDomProperties
 } from './interfaces';
 import { from as arrayFrom } from '@dojo/shim/array';
@@ -23,6 +20,41 @@ const NAMESPACE_XLINK = NAMESPACE_W3 + '1999/xlink';
 const emptyArray: (InternalWNode | InternalHNode)[] = [];
 
 export type RenderResult = DNode<any> | DNode<any>[];
+
+export interface TransitionStrategy {
+	enter(element: Element, properties: VirtualDomProperties, enterAnimation: string): void;
+	exit(element: Element, properties: VirtualDomProperties, exitAnimation: string, removeElement: () => void): void;
+}
+
+export interface Projection {
+	readonly domNode: Element;
+	update(updatedDNode: DNode | DNode[]): void;
+}
+
+export interface ProjectorOptions {
+	readonly transitions?: TransitionStrategy;
+	styleApplyer?(domNode: HTMLElement, styleName: string, value: string): void;
+}
+
+export interface ProjectionOptions extends ProjectorOptions {
+	namespace?: string;
+	deferredRenderCallbacks: Function [];
+	afterRenderCallbacks: Function[];
+	merge: boolean;
+	sync: boolean;
+	mergeElement?: Element;
+	nodeMap: WeakMap<Node, WeakMap<Function, EventListener>>;
+	instanceMap: WeakMap<any, any>;
+	rootNode: Element;
+	renderQueue: RenderQueueItem[];
+	scheduled: boolean;
+	depth: number;
+}
+
+export interface RenderQueueItem {
+	depth: number;
+	instance: WidgetBase;
+}
 
 export interface InternalWNode extends WNode<WidgetBase> {
 
@@ -99,18 +131,16 @@ function render(projectionOptions: ProjectionOptions) {
 	projectionOptions.scheduled = false;
 	const renderQueue = [ ...projectionOptions.renderQueue ];
 	projectionOptions.renderQueue = [];
-	renderQueue.sort((a: any, b: any) => a.depth - b.depth);
+	renderQueue.sort((a, b) => a.depth - b.depth);
 	while (renderQueue.length) {
-		const item: any = renderQueue.shift();
-		const instance = item.instance;
+		const { instance } = renderQueue.shift() as RenderQueueItem;
 		const instanceMapItem = projectionOptions.instanceMap.get(instance);
-		const dnode = instanceMapItem.dnode;
-		const parentNode = instanceMapItem.parentNode;
+		const { dnode, parentNode } = instanceMapItem;
 		if (instance.dirty) {
 			const originalDNode = dnode.rendered;
 			let updatedDNode =  instance.__render__();
 			updatedDNode = filterAndDecorateChildren(updatedDNode, instance);
-			updateChildren(parentNode, originalDNode, updatedDNode as InternalDNode[], instance, projectionOptions);
+			updateChildren(parentNode, originalDNode, updatedDNode as any, instance, projectionOptions);
 			dnode.rendered = updatedDNode;
 		}
 	}

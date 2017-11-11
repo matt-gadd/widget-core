@@ -4,12 +4,12 @@ import { createHandle } from '@dojo/core/lang';
 import { Handle } from '@dojo/interfaces/core';
 import 'pepjs';
 import cssTransitions from '../animations/cssTransitions';
-import { Constructor, DNode, Projection, ProjectionOptions } from './../interfaces';
+import { Constructor, DNode } from './../interfaces';
 import { WidgetBase } from './../WidgetBase';
 import { afterRender } from './../decorators/afterRender';
 import { v } from './../d';
 import { Registry } from './../Registry';
-import { dom } from './../vdom';
+import { dom, Projection, ProjectionOptions } from './../vdom';
 
 /**
  * Represents the attach state of the projector
@@ -24,8 +24,7 @@ export enum ProjectorAttachState {
  */
 export enum AttachType {
 	Append = 1,
-	Merge = 2,
-	Replace = 3
+	Merge = 2
 }
 
 export interface AttachOptions {
@@ -63,11 +62,6 @@ export interface ProjectorMixin<P> {
 	 * @param root The root element that the root virtual DOM node will be merged with.  Defaults to `document.body`.
 	 */
 	merge(root?: Element): Handle;
-
-	/**
-	 * Replace the root with the projector node.
-	 */
-	replace(root?: Element): Handle;
 
 	/**
 	 * Pause the projector.
@@ -147,7 +141,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		private _projection: Projection | undefined;
 		private _scheduled: number | undefined;
 		private _paused: boolean;
-		private _boundDoRender: () => void;
 		private _boundRender: Function;
 		private _projectorChildren: DNode[] = [];
 		private _projectorProperties: this['properties'] = {} as this['properties'];
@@ -162,7 +155,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 				transitions: cssTransitions
 			};
 
-			this._boundDoRender = this._doRender.bind(this);
 			this._boundRender = this.__render__.bind(this);
 			this.root = document.body;
 			this.projectorState = ProjectorAttachState.Detached;
@@ -180,15 +172,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		public merge(root?: Element): Handle {
 			const options = {
 				type: AttachType.Merge,
-				root
-			};
-
-			return this._attach(options);
-		}
-
-		public replace(root?: Element): Handle  {
-			const options = {
-				type: AttachType.Replace,
 				root
 			};
 
@@ -292,14 +275,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 			return node;
 		}
 
-		private _doRender() {
-			this._scheduled = undefined;
-
-			if (this._projection) {
-				this._projection.update(this._boundRender());
-			}
-		}
-
 		private own(handle: Function): void {
 			this._handles.push(handle);
 		}
@@ -345,9 +320,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 				case AttachType.Merge:
 					this._rootTagName = this._root.tagName.toLowerCase();
 					this._projection = dom.merge(this.root, this._boundRender(), this , this._projectionOptions);
-				break;
-				case AttachType.Replace:
-					this._projection = dom.replace(this.root, this._boundRender(), this, this._projectionOptions);
 				break;
 			}
 
