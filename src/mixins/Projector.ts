@@ -1,5 +1,4 @@
 import { assign } from '@dojo/core/lang';
-import global from '@dojo/shim/global';
 import { createHandle } from '@dojo/core/lang';
 import { Handle } from '@dojo/interfaces/core';
 import 'pepjs';
@@ -64,16 +63,6 @@ export interface ProjectorMixin<P> {
 	merge(root?: Element): Handle;
 
 	/**
-	 * Pause the projector.
-	 */
-	pause(): void;
-
-	/**
-	 * Resume the projector.
-	 */
-	resume(): void;
-
-	/**
 	 * Attach the project to a _sandboxed_ document fragment that is not part of the DOM.
 	 *
 	 * When sandboxed, the `Projector` will run in a sync manner, where renders are completed within the same turn.
@@ -103,9 +92,9 @@ export interface ProjectorMixin<P> {
 	toHtml(): string;
 
 	/**
-	 * Indicates if the projectors is in async mode, configured to `true` by defaults.
+	 * Indicates if the projectors is in sync mode, configured to `false` by default.
 	 */
-	async: boolean;
+	sync: boolean;
 
 	/**
 	 * Root element to attach the projector
@@ -134,13 +123,11 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 		public projectorState: ProjectorAttachState;
 		public properties: Readonly<P> & Readonly<ProjectorProperties>;
 
+		private _sync = false;
 		private _root: Element;
-		private _async = true;
 		private _attachHandle: Handle;
 		private _projectionOptions: Partial<ProjectionOptions>;
 		private _projection: Projection | undefined;
-		private _scheduled: number | undefined;
-		private _paused: boolean;
 		private _boundRender: Function;
 		private _projectorChildren: DNode[] = [];
 		private _projectorProperties: this['properties'] = {} as this['properties'];
@@ -150,45 +137,20 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 
 		constructor(...args: any[]) {
 			super(...args);
-
-			this._projectionOptions = {
-				transitions: cssTransitions
-			};
-
+			this._projectionOptions = { transitions: cssTransitions };
 			this._boundRender = this.__render__.bind(this);
 			this.root = document.body;
 			this.projectorState = ProjectorAttachState.Detached;
 		}
 
 		public append(root?: Element): Handle  {
-			const options = {
-				type: AttachType.Append,
-				root
-			};
-
+			const options = { type: AttachType.Append, root };
 			return this._attach(options);
 		}
 
 		public merge(root?: Element): Handle {
-			const options = {
-				type: AttachType.Merge,
-				root
-			};
-
+			const options = { type: AttachType.Merge, root };
 			return this._attach(options);
-		}
-
-		public pause() {
-			if (this._scheduled) {
-				global.cancelAnimationFrame(this._scheduled);
-				this._scheduled = undefined;
-			}
-			this._paused = true;
-		}
-
-		public resume() {
-			this._paused = false;
-			this.invalidate();
 		}
 
 		public set root(root: Element) {
@@ -202,31 +164,23 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 			return this._root;
 		}
 
-		public get async(): boolean {
-			return this._async;
+		public get sync(): boolean {
+			return this._sync;
 		}
 
-		public set async(async: boolean) {
+		public set sync(sync: boolean) {
 			if (this.projectorState === ProjectorAttachState.Attached) {
-				throw new Error('Projector already attached, cannot change async mode');
+				throw new Error('Projector already attached, cannot change sync mode');
 			}
-			this._async = async;
+			this._sync = sync;
 		}
 
 		public sandbox(doc: Document = document): void {
 			if (this.projectorState === ProjectorAttachState.Attached) {
 				throw new Error('Projector already attached, cannot create sandbox');
 			}
-			this._async = false;
-			const previousRoot = this.root;
-
-			/* free up the document fragment for GC */
-			this.own(() => {
-				this._root = previousRoot;
-			});
-
+			this.sync = true;
 			this._attach({
-				/* DocumentFragment is not assignable to Element, but provides everything needed to work */
 				root: doc.createDocumentFragment() as any,
 				type: AttachType.Append
 			});
@@ -302,7 +256,6 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 
 			const handle = () => {
 				if (this.projectorState === ProjectorAttachState.Attached) {
-					this.pause();
 					this._projection = undefined;
 					this.projectorState = ProjectorAttachState.Detached;
 				}
@@ -311,7 +264,7 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 			this.own(handle);
 			this._attachHandle = createHandle(handle);
 
-			this._projectionOptions = { ...this._projectionOptions, ...{ sync: !this._async } };
+			this._projectionOptions = { ...this._projectionOptions, ...{ sync: this.sync } };
 
 			switch (type) {
 				case AttachType.Append:
