@@ -28,7 +28,7 @@ export interface TransitionStrategy {
 
 export interface Projection {
 	readonly domNode: Element;
-	update(updatedDNode: DNode | DNode[]): void;
+	update(): void;
 }
 
 export interface ProjectorOptions {

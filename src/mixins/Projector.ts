@@ -240,6 +240,12 @@ export function ProjectorMixin<P, T extends Constructor<WidgetBase<P>>>(Base: T)
 			}
 		}
 
+		public scheduleRender() {
+			if (this.projectorState === ProjectorAttachState.Attached && this._projection) {
+				this._projection.update();
+			}
+		}
+
 		private _attach({ type, root }: AttachOptions): Handle {
 			this._attachType = type;
 			if (root) {
