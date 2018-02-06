@@ -32,6 +32,10 @@ export function DomWrapper(domNode: Element | Text, options: DomWrapperOptions =
 			const tag = isElement(domNode) ? domNode.tagName : '';
 			return v(tag, properties);
 		}
+
+		static get domNode() {
+			return domNode;
+		}
 	};
 }
 

@@ -14,3 +14,4 @@ import './tsxIntegration';
 import './NodeHandler';
 import './meta/all';
 import './vdom';
+import './registerCustomElement';

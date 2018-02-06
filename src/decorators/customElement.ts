@@ -39,21 +39,17 @@ export interface CustomElementConfig<P extends object = { [index: string]: any }
  */
 export function customElement<P extends object = { [index: string]: any }>({
 	tag,
-	properties,
-	attributes,
-	events,
+	properties = [],
+	attributes = [],
+	events = [],
 	initialization
 }: CustomElementConfig<P>) {
 	return function<T extends Constructor<any>>(target: T) {
 		target.prototype.__customElementDescriptor = {
 			tagName: tag,
-			widgetConstructor: target,
-			attributes: (attributes || []).map((attributeName) => ({ attributeName })),
-			properties: (properties || []).map((propertyName) => ({ propertyName })),
-			events: (events || []).map((propertyName) => ({
-				propertyName,
-				eventName: propertyName.replace('on', '').toLowerCase()
-			})),
+			attributes,
+			properties,
+			events,
 			initialization
 		};
 	};
