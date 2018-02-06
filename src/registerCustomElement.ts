@@ -43,10 +43,24 @@ export function registerCustomElement(WidgetConstructor: any) {
 					}
 				});
 
+				const domProperties: any = {};
+
 				properties.forEach((propertyName: string) => {
 					const value = (this as any)[propertyName];
 					this._widgetProperties[propertyName] = value;
+
+					domProperties[propertyName] = {
+						get: () => {
+							return this._widgetProperties[propertyName];
+						},
+						set: (value: any) => {
+							this._widgetProperties[propertyName] = value;
+							this._render();
+						}
+					};
 				});
+
+				Object.defineProperties(this, domProperties);
 
 				events.forEach((propertyName: string) => {
 					const eventName = propertyName.replace(/^on/, '').toLowerCase();

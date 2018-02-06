@@ -24,7 +24,6 @@ registerSuite('registerCustomElement', {
 				onFoo();
 			}
 			render() {
-				debugger;
 				const { property, attribute } = this.properties;
 				return v('div', [v('button', { onclick: this._onClick }, [attribute]), ...this.children]);
 			}
