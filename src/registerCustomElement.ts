@@ -11,7 +11,7 @@ declare namespace customElements {
 export function registerCustomElement(WidgetConstructor: any) {
 	const descriptor = WidgetConstructor.prototype.__customElementDescriptor;
 	if (!descriptor) {
-		throw new Error('failz');
+		throw new Error('cannot get descriptor');
 	}
 	const { attributes } = descriptor;
 	const attributeMap: any = {};
@@ -33,6 +33,7 @@ export function registerCustomElement(WidgetConstructor: any) {
 				if (this._initialised) {
 					return;
 				}
+
 				const { attributes, properties, events } = descriptor;
 
 				attributes.forEach((propertyName: string) => {
