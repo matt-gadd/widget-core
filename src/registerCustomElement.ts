@@ -1,7 +1,7 @@
 import { DomWrapper } from './util/DomWrapper';
 import { WidgetBase } from './WidgetBase';
 import { ProjectorMixin } from './mixins/Projector';
-import { from, findIndex } from '@dojo/shim/array';
+import { from } from '@dojo/shim/array';
 import { w } from './d';
 
 declare namespace customElements {
@@ -25,7 +25,6 @@ export function registerCustomElement(WidgetConstructor: any) {
 		descriptor.tagName,
 		class extends HTMLElement {
 			private _projector: any;
-			private _observer: any;
 			private _properties: any = {};
 			private _children: any[] = [];
 			private _initialised = false;
@@ -81,30 +80,6 @@ export function registerCustomElement(WidgetConstructor: any) {
 				this._projector.append(this);
 
 				this._initialised = true;
-
-				this._observer = new MutationObserver((mutationsList) => this._updateChildren(mutationsList));
-				this._observer.observe(this, { childList: true });
-			}
-
-			public disconnectedCallback() {
-				this._observer.disconnect();
-			}
-
-			private _updateChildren(mutationsList: any[]) {
-				for (let mutation of mutationsList) {
-					const { addedNodes } = mutation;
-					/*for (let i = 0; i < removedNodes.length; i++) {
-						const childNode = removedNodes[i];
-						const index = findIndex(this._children, (child) => child.domNode === childNode);
-						this._children.splice(index, 1);
-					}*/
-					for (let i = 0; i < addedNodes.length; i++) {
-						const childNode = addedNodes[i];
-						childNode.addEventListener('render', () => this._render());
-						this._children.push(DomWrapper(childNode as HTMLElement));
-					}
-				}
-				this._render();
 			}
 
 			private _render() {
