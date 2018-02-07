@@ -93,6 +93,9 @@ registerSuite('registerCustomElement', {
 		}, 500);
 		setTimeout(() => {
 			bar.setAttribute('world', 'yup');
+			const qux = document.createElement('h1');
+			qux.innerHTML = 'qux';
+			foo.appendChild(qux);
 		}, 1000);
 		return new Promise(() => {});
 	}

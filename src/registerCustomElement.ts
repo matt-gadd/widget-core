@@ -1,7 +1,7 @@
 import { DomWrapper } from './util/DomWrapper';
 import { WidgetBase } from './WidgetBase';
 import { ProjectorMixin } from './mixins/Projector';
-import { from } from '@dojo/shim/array';
+import { from, findIndex } from '@dojo/shim/array';
 import { w } from './d';
 
 declare namespace customElements {
@@ -25,8 +25,9 @@ export function registerCustomElement(WidgetConstructor: any) {
 		descriptor.tagName,
 		class extends HTMLElement {
 			private _projector: any;
-			private _widgetProperties: any = {};
-			private _widgetChildren: any[] = [];
+			private _observer: any;
+			private _properties: any = {};
+			private _children: any[] = [];
 			private _initialised = false;
 
 			public connectedCallback() {
@@ -34,30 +35,18 @@ export function registerCustomElement(WidgetConstructor: any) {
 					return;
 				}
 
+				const domProperties: any = {};
 				const { attributes, properties, events } = descriptor;
 
-				attributes.forEach((propertyName: string) => {
-					const attributeName = propertyName.toLowerCase();
-					const value = this.getAttribute(attributeName);
-					if (value !== null) {
-						this._widgetProperties[propertyName] = value;
-					}
-				});
-
-				const domProperties: any = {};
+				this._properties = { ...this._properties, ...this._attributesToProperties(attributes) };
 
 				properties.forEach((propertyName: string) => {
 					const value = (this as any)[propertyName];
-					this._widgetProperties[propertyName] = value;
+					this._properties[propertyName] = value;
 
 					domProperties[propertyName] = {
-						get: () => {
-							return this._widgetProperties[propertyName];
-						},
-						set: (value: any) => {
-							this._widgetProperties[propertyName] = value;
-							this._render();
-						}
+						get: () => this._getProperty(propertyName),
+						set: (value: any) => this._setProperty(propertyName, value)
 					};
 				});
 
@@ -65,7 +54,7 @@ export function registerCustomElement(WidgetConstructor: any) {
 
 				events.forEach((propertyName: string) => {
 					const eventName = propertyName.replace(/^on/, '').toLowerCase();
-					this._widgetProperties[propertyName] = (event: any) => {
+					this._properties[propertyName] = (event: any) => {
 						this.dispatchEvent(
 							new CustomEvent(eventName, {
 								bubbles: false,
@@ -77,11 +66,11 @@ export function registerCustomElement(WidgetConstructor: any) {
 
 				from(this.childNodes).forEach((childNode: Node) => {
 					childNode.addEventListener('render', () => this._render());
-					this._widgetChildren.push(DomWrapper(childNode as HTMLElement));
+					this._children.push(DomWrapper(childNode as HTMLElement));
 				});
 
-				const widgetProperties = this._widgetProperties;
-				const renderChildren = () => this._renderChildren();
+				const widgetProperties = this._properties;
+				const renderChildren = () => this.__children__();
 				const Wrapper = class extends WidgetBase {
 					render() {
 						return w(WidgetConstructor, widgetProperties, renderChildren());
@@ -92,20 +81,30 @@ export function registerCustomElement(WidgetConstructor: any) {
 				this._projector.append(this);
 
 				this._initialised = true;
+
+				this._observer = new MutationObserver((mutationsList) => this._updateChildren(mutationsList));
+				this._observer.observe(this, { childList: true });
 			}
 
-			_renderChildren() {
-				return this._widgetChildren.map((Child: any) => {
-					let properties = {};
-					let children = [];
-					if (Child.domNode.widgetProperties) {
-						properties = Child.domNode.widgetProperties;
+			public disconnectedCallback() {
+				this._observer.disconnect();
+			}
+
+			private _updateChildren(mutationsList: any[]) {
+				for (let mutation of mutationsList) {
+					const { addedNodes } = mutation;
+					/*for (let i = 0; i < removedNodes.length; i++) {
+						const childNode = removedNodes[i];
+						const index = findIndex(this._children, (child) => child.domNode === childNode);
+						this._children.splice(index, 1);
+					}*/
+					for (let i = 0; i < addedNodes.length; i++) {
+						const childNode = addedNodes[i];
+						childNode.addEventListener('render', () => this._render());
+						this._children.push(DomWrapper(childNode as HTMLElement));
 					}
-					if (Child.domNode.widgetChildren) {
-						children = Child.domNode.widgetChildren;
-					}
-					return w(Child, properties, children);
-				});
+				}
+				this._render();
 			}
 
 			private _render() {
@@ -120,18 +119,42 @@ export function registerCustomElement(WidgetConstructor: any) {
 				}
 			}
 
-			public attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+			public __properties__() {
+				return this._properties;
+			}
+
+			public __children__() {
+				return this._children.map((Child: any) => {
+					const domNode = Child.domNode;
+					const properties = domNode.__properties__ ? domNode.__properties__() : {};
+					const children = domNode.__children__ ? domNode.__children__() : [];
+					return w(Child, properties, children);
+				});
+			}
+
+			public attributeChangedCallback(name: string, oldValue: string | null, value: string | null) {
 				const propertyName = attributeMap[name];
-				this._widgetProperties[propertyName] = newValue;
+				this._setProperty(propertyName, value);
+			}
+
+			private _setProperty(propertyName: string, value: any) {
+				this._properties[propertyName] = value;
 				this._render();
 			}
 
-			public get widgetProperties() {
-				return this._widgetProperties;
+			private _getProperty(propertyName: string) {
+				return this._properties[propertyName];
 			}
 
-			public get widgetChildren() {
-				return this._renderChildren();
+			private _attributesToProperties(attributes: string[]) {
+				return attributes.reduce((properties: any, propertyName: string) => {
+					const attributeName = propertyName.toLowerCase();
+					const value = this.getAttribute(attributeName);
+					if (value !== null) {
+						properties[propertyName] = value;
+					}
+					return properties;
+				}, {});
 			}
 
 			static get observedAttributes() {
