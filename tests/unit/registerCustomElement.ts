@@ -24,6 +24,9 @@ registerSuite('registerCustomElement', {
 				onFoo();
 			}
 			render() {
+				if (this.children.length) {
+					this.children[0].properties.world = 'i am not broken';
+				}
 				const { property, attribute } = this.properties;
 				return v('div', [v('button', { onclick: this._onClick }, [attribute]), ...this.children]);
 			}
@@ -47,7 +50,7 @@ registerSuite('registerCustomElement', {
 			}
 			render() {
 				const { world } = this.properties;
-				return v('div', [v('span', ['Bar']), v('div', { onclick: this._onClick }, this.children)]);
+				return v('div', [v('span', [`${world} Bar`]), v('div', { onclick: this._onClick }, this.children)]);
 			}
 		}
 		registerCustomElement(Bar);
@@ -68,10 +71,21 @@ registerSuite('registerCustomElement', {
 				onBaz();
 			}
 			render() {
-				return v('div', [v('div', { onclick: this._onClick }, ['i am a child'])]);
+				const { b } = this.properties;
+				return v('div', [v('div', { onclick: this._onClick }, [`baz ${b}`])]);
 			}
 		}
 		registerCustomElement(Baz);
+
+		@customElement<any>({
+			tag: 'qux-element'
+		})
+		class Qux extends WidgetBase<{}> {
+			render() {
+				return v('div', ['qux']);
+			}
+		}
+		registerCustomElement(Qux);
 
 		const foo = document.createElement('foo-element') as any;
 		foo.property = 'blah';
@@ -84,19 +98,25 @@ registerSuite('registerCustomElement', {
 		bar.setAttribute('world', 'story');
 		const baz = document.createElement('baz-element');
 		baz.setAttribute('b', 'is this the real life');
-		bar.appendChild(baz);
 		foo.appendChild(bar);
 		document.body.appendChild(foo);
 		foo.setAttribute('attribute', 'changed');
 		setTimeout(() => {
+			bar.appendChild(baz);
 			foo.setAttribute('attribute', 'again');
+			bar.setAttribute('world', 'yooo');
 		}, 500);
 		setTimeout(() => {
+			debugger;
+			const qux = document.createElement('qux-element');
+			bar.appendChild(qux);
+		}, 2000);
+		/*setTimeout(() => {
 			bar.setAttribute('world', 'yup');
 			const qux = document.createElement('h1');
 			qux.innerHTML = 'qux';
 			foo.appendChild(qux);
-		}, 1000);
+		}, 1000);*/
 		return new Promise(() => {});
 	}
 });
