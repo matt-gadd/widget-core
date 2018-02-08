@@ -23,7 +23,7 @@
 		"removeComments": false,
 		"sourceMap": true,
 		"strict": true,
-		"target": "esnext",
+		"target": "es5",
 		"types": [ "intern", "web-animations-js" ]
 	},
 	"include": [

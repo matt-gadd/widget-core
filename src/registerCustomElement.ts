@@ -25,9 +25,11 @@ export function create(descriptor: any, attributeMap: any, WidgetConstructor: an
 
 			this._properties = { ...this._properties, ...this._attributesToProperties(attributes) };
 
-			properties.forEach((propertyName: string) => {
+			[...attributes, ...properties].forEach((propertyName: string) => {
 				const value = (this as any)[propertyName];
-				this._properties[propertyName] = value;
+				if (value !== undefined) {
+					this._properties[propertyName] = value;
+				}
 
 				domProperties[propertyName] = {
 					get: () => this._getProperty(propertyName),
@@ -50,10 +52,11 @@ export function create(descriptor: any, attributeMap: any, WidgetConstructor: an
 			});
 
 			from(this.children).forEach((childNode: Node) => {
-				childNode.addEventListener('render', () => this._render());
-				childNode.addEventListener('connected', () => this._render());
+				childNode.addEventListener('dojo-ce-render', () => this._render());
 				this._children.push(DomWrapper(childNode as HTMLElement));
 			});
+
+			this.addEventListener('dojo-ce-connected', (e: any) => this._childConnected(e));
 
 			const widgetProperties = this._properties;
 			const renderChildren = () => this.__children__();
@@ -66,52 +69,31 @@ export function create(descriptor: any, attributeMap: any, WidgetConstructor: an
 			this._projector = new Projector();
 			this._projector.append(this);
 
-			const observer = new MutationObserver((mutationsList: any) => this._updateChildren(mutationsList));
-			observer.observe(this, { childList: true });
-
 			this._initialised = true;
 			this.dispatchEvent(
-				new CustomEvent('connected', {
-					bubbles: false,
+				new CustomEvent('dojo-ce-connected', {
+					bubbles: true,
 					detail: this
 				})
 			);
 		}
 
-		private _updateChildren(mutationsList: any) {
-			for (let mutation of mutationsList) {
-				const { addedNodes } = mutation;
-				for (let i = 0; i < addedNodes.length; i++) {
-					const node = addedNodes[i];
-					/*if (node.isWidget && node.parentNode === this) {
-						this._children.push(DomWrapper(node as HTMLElement));
-					}*/
-					if (node.isWidget && node.parentNode === this) {
-						const children = from(this.children);
-						let previousSibling: any;
-						for (let n = 0; n < children.length; n++) {
-							const target = children[n];
-							if (target === node) {
-								previousSibling = children[Math.max(0, n - 1)];
-								break;
-							}
-						}
-						const previousIndex = findIndex(
-							this._children,
-							(child: any) => child.domNode === previousSibling
-						);
-						this._children.splice(previousIndex + 1, 1, DomWrapper(node as HTMLElement));
-					}
+		private _childConnected(e: any) {
+			const node = e.detail;
+			if (node.parentNode === this) {
+				const exists = this._children.some((child) => child.domNode === node);
+				if (!exists) {
+					this._children.push(DomWrapper(node));
+					this._render();
 				}
 			}
-			this._render();
 		}
 
 		private _render() {
 			if (this._projector) {
 				this._projector.invalidate();
 				this.dispatchEvent(
-					new CustomEvent('render', {
+					new CustomEvent('dojo-ce-render', {
 						bubbles: false,
 						detail: event
 					})

@@ -99,6 +99,7 @@ registerSuite('registerCustomElement', {
 		const baz = document.createElement('baz-element');
 		baz.setAttribute('b', 'is this the real life');
 		foo.appendChild(bar);
+		const qux = document.createElement('qux-element');
 		document.body.appendChild(foo);
 		foo.setAttribute('attribute', 'changed');
 		setTimeout(() => {
@@ -107,16 +108,8 @@ registerSuite('registerCustomElement', {
 			bar.setAttribute('world', 'yooo');
 		}, 500);
 		setTimeout(() => {
-			debugger;
-			const qux = document.createElement('qux-element');
 			bar.appendChild(qux);
-		}, 2000);
-		/*setTimeout(() => {
-			bar.setAttribute('world', 'yup');
-			const qux = document.createElement('h1');
-			qux.innerHTML = 'qux';
-			foo.appendChild(qux);
-		}, 1000);*/
+		}, 1000);
 		return new Promise(() => {});
 	}
 });
