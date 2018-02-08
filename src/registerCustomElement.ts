@@ -1,14 +1,18 @@
 import { DomWrapper } from './util/DomWrapper';
 import { WidgetBase } from './WidgetBase';
 import { ProjectorMixin } from './mixins/Projector';
-import { from, findIndex } from '@dojo/shim/array';
+import { from } from '@dojo/shim/array';
 import { w } from './d';
+import global from '@dojo/shim/global';
 
-declare namespace customElements {
-	function define(name: string, constructor: any): void;
-}
+export function create(descriptor: any, WidgetConstructor: any) {
+	const { attributes } = descriptor;
+	const attributeMap: any = {};
 
-export function create(descriptor: any, attributeMap: any, WidgetConstructor: any) {
+	attributes.forEach((propertyName: string) => {
+		const attributeName = propertyName.toLowerCase();
+		attributeMap[attributeName] = propertyName;
+	});
 	return class extends HTMLElement {
 		private _projector: any;
 		private _properties: any = {};
@@ -156,15 +160,7 @@ export function register(WidgetConstructor: any) {
 		throw new Error('cannot get descriptor');
 	}
 
-	const { attributes } = descriptor;
-	const attributeMap: any = {};
-
-	attributes.forEach((propertyName: string) => {
-		const attributeName = propertyName.toLowerCase();
-		attributeMap[attributeName] = propertyName;
-	});
-
-	customElements.define(descriptor.tagName, create(descriptor, attributeMap, WidgetConstructor));
+	global.customElements.define(descriptor.tagName, create(descriptor, WidgetConstructor));
 }
 
 export default register;
