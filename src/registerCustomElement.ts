@@ -87,6 +87,7 @@ export function create(descriptor: any, WidgetConstructor: any) {
 			if (node.parentNode === this) {
 				const exists = this._children.some((child) => child.domNode === node);
 				if (!exists) {
+					node.addEventListener('dojo-ce-render', () => this._render());
 					this._children.push(DomWrapper(node));
 					this._render();
 				}
