@@ -25,10 +25,9 @@ describe('@customElement', () => {
 	it('Should add the descriptor to the widget prototype', () => {
 		assert.deepEqual((CustomElementWidget.prototype as any).__customElementDescriptor, {
 			tagName: 'custom-element',
-			widgetConstructor: CustomElementWidget,
-			attributes: [{ attributeName: 'key' }, { attributeName: 'label' }, { attributeName: 'labelSuffix' }],
-			properties: [{ propertyName: 'label' }],
-			events: [{ propertyName: 'onClick', eventName: 'click' }],
+			attributes: ['key', 'label', 'labelSuffix'],
+			properties: ['label'],
+			events: ['onClick'],
 			initialization
 		});
 	});
