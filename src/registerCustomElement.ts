@@ -113,9 +113,7 @@ export function create(descriptor: any, WidgetConstructor: any) {
 		public __children__() {
 			return this._children.filter((Child) => Child.domNode).map((Child: any) => {
 				const domNode = Child.domNode;
-				const properties = domNode.__properties__();
-				const children = domNode.__children__();
-				return w(Child, properties, children);
+				return w(Child, domNode.__properties__(), domNode.__children__());
 			});
 		}
 
