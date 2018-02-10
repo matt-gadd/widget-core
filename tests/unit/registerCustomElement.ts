@@ -32,7 +32,7 @@ function createTestWidget(options: any) {
 		render() {
 			if (this.children.length) {
 				const [child] = this.children;
-				(child as any).properties.myAttr = 'set an attribute on a child';
+				(child as any).properties.myAttr = 'set attribute from parent';
 			}
 			const { myProp = '', myAttr = '' } = this.properties;
 			return v('div', [
@@ -61,14 +61,14 @@ describe('registerCustomElement', () => {
 		element = undefined;
 	});
 
-	it('can create an element', () => {
+	it('custom element', () => {
 		register(Foo);
 		element = document.createElement('foo-element');
 		document.body.appendChild(element);
 		assert.equal(element.outerHTML, '<foo-element><div>hello world</div></foo-element>');
 	});
 
-	it('can create an element with property', () => {
+	it('custom element with property', () => {
 		const Bar = createTestWidget({ properties: ['myProp'] });
 		const CustomElement = create((Bar.prototype as any).__customElementDescriptor, Bar);
 		customElements.define('bar-element-1', CustomElement);
@@ -79,7 +79,7 @@ describe('registerCustomElement', () => {
 		assert.equal(prop.innerHTML, 'hello');
 	});
 
-	it('can create an element with attribute', () => {
+	it('custom element with attribute', () => {
 		const Bar = createTestWidget({ attributes: ['myAttr'] });
 		const CustomElement = create((Bar.prototype as any).__customElementDescriptor, Bar);
 		customElements.define('bar-element-2', CustomElement);
@@ -90,7 +90,7 @@ describe('registerCustomElement', () => {
 		assert.equal(attr.innerHTML, 'world');
 	});
 
-	it('can create an element with event', () => {
+	it('custom element with event', () => {
 		let called = false;
 		const Bar = createTestWidget({ events: ['onBar'] });
 		const CustomElement = create((Bar.prototype as any).__customElementDescriptor, Bar);
@@ -105,22 +105,25 @@ describe('registerCustomElement', () => {
 		assert.isTrue(called);
 	});
 
-	it('can create an element with child - and set an attribute from the parent', () => {
+	it('custom element with child element', () => {
 		const BarA = createTestWidget({});
 		const CustomElementA = create((BarA.prototype as any).__customElementDescriptor, BarA);
 		customElements.define('bar-a', CustomElementA);
-		const BarB = createTestWidget({ attributes: ['myAttr'] });
+		const BarB = createTestWidget({ attributes: ['myAttr'], properties: ['myProp'] });
 		const CustomElementB = create((BarB.prototype as any).__customElementDescriptor, BarB);
 		customElements.define('bar-b', CustomElementB);
 		element = document.createElement('bar-a');
 		const barB = document.createElement('bar-b');
 		document.body.appendChild(element);
 		element.appendChild(barB);
+		(barB as any).myProp = 'set property on child';
 		resolvers.resolve();
 		const container = element.querySelector('.children');
 		const children = (container as any).children;
 		assert.equal(children[0].tagName, 'BAR-B');
 		const attr = children[0].querySelector('.attr');
-		assert.equal(attr.innerHTML, 'set an attribute on a child');
+		const prop = children[0].querySelector('.prop');
+		assert.equal(attr.innerHTML, 'set attribute from parent');
+		assert.equal(prop.innerHTML, 'set property on child');
 	});
 });
