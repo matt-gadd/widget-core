@@ -1,4 +1,3 @@
-import { CustomElementInitializer } from '../customElements';
 import { Constructor, WidgetProperties } from '../interfaces';
 
 export type CustomElementPropertyNames<P extends object> = ((keyof P) | (keyof WidgetProperties))[];
@@ -26,11 +25,6 @@ export interface CustomElementConfig<P extends object = { [index: string]: any }
 	 * List of events to expose
 	 */
 	events?: CustomElementPropertyNames<P>;
-
-	/**
-	 * Initialization function called before the widget is created (for custom property setting)
-	 */
-	initialization?: CustomElementInitializer;
 }
 
 /**
@@ -41,16 +35,14 @@ export function customElement<P extends object = { [index: string]: any }>({
 	tag,
 	properties = [],
 	attributes = [],
-	events = [],
-	initialization
+	events = []
 }: CustomElementConfig<P>) {
 	return function<T extends Constructor<any>>(target: T) {
 		target.prototype.__customElementDescriptor = {
 			tagName: tag,
 			attributes,
 			properties,
-			events,
-			initialization
+			events
 		};
 	};
 }

@@ -1,7 +1,6 @@
 import './Container';
 import './WidgetBase';
 import './Registry';
-import './customElements';
 import './d';
 import './decorators/all';
 import './mixins/all';

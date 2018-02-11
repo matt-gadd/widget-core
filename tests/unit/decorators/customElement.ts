@@ -10,14 +10,11 @@ interface CustomElementWidgetProperties {
 	onClick: () => void;
 }
 
-function initialization() {}
-
 @customElement<CustomElementWidgetProperties>({
 	tag: 'custom-element',
 	attributes: ['key', 'label', 'labelSuffix'],
 	properties: ['label'],
-	events: ['onClick'],
-	initialization
+	events: ['onClick']
 })
 export class CustomElementWidget extends WidgetBase<CustomElementWidgetProperties> {}
 
@@ -27,8 +24,7 @@ describe('@customElement', () => {
 			tagName: 'custom-element',
 			attributes: ['key', 'label', 'labelSuffix'],
 			properties: ['label'],
-			events: ['onClick'],
-			initialization
+			events: ['onClick']
 		});
 	});
 });
