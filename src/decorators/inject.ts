@@ -4,7 +4,7 @@ import { handleDecorator } from './handleDecorator';
 import { Injector } from './../Injector';
 import { beforeProperties } from './beforeProperties';
 import { RegistryLabel } from './../interfaces';
-
+import { injectorInvalidatorMap } from '../Registry';
 /**
  * Map of instances against registered injectors.
  */
@@ -51,14 +51,15 @@ export function inject({ name, getProperties }: InjectConfig) {
 					registeredInjectorsMap.set(this, registeredInjectors);
 				}
 				if (registeredInjectors.indexOf(injector) === -1) {
+					const invalidateEvent = injectorInvalidatorMap.get(name as string);
 					this.own(
-						injector.on('invalidate', () => {
+						invalidateEvent.on('invalidate', () => {
 							this.invalidate();
 						})
 					);
 					registeredInjectors.push(injector);
 				}
-				return getProperties(injector.get(), properties);
+				return getProperties((injector as any)(), properties);
 			}
 		})(target);
 	});

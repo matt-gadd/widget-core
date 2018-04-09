@@ -6,6 +6,8 @@ import { Evented } from '@dojo/core/Evented';
 import { Constructor, RegistryLabel, WidgetBaseConstructor, WidgetBaseInterface } from './interfaces';
 import { Injector } from './Injector';
 
+export const injectorInvalidatorMap = new Map<string, any>();
+
 export type WidgetBaseConstructorFunction = () => Promise<WidgetBaseConstructor>;
 
 export type ESMDefaultWidgetBaseFunction = () => Promise<ESMDefaultWidgetBase<WidgetBaseInterface>>;
@@ -152,7 +154,12 @@ export class Registry extends Evented<{}, RegistryLabel, RegistryEventObject> im
 		}
 	}
 
-	public defineInjector(label: RegistryLabel, item: Injector): void {
+	public defineInjector(label: RegistryLabel, item: any): void {
+		const evented = new Evented();
+		injectorInvalidatorMap.set(label as string, evented);
+
+		item = item(() => evented.emit({ type: 'invalidate' }));
+
 		if (this._injectorRegistry === undefined) {
 			this._injectorRegistry = new Map();
 		}
