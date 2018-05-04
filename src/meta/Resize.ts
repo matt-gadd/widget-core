@@ -53,14 +53,13 @@ export class Resize extends Base {
 			this._details.set(key, {});
 			const resizeObserver = new ResizeObserver(([entry]) => {
 				const { contentRect } = entry;
-				const previousDetails = this._details.get(key);
 				let predicateChanged = false;
 				let predicateResponses: PredicateResponses = {};
 
 				for (let predicateId in predicates) {
 					const response = predicates[predicateId](contentRect);
 					predicateResponses[predicateId] = response;
-					if (!predicateChanged && response !== previousDetails![predicateId]) {
+					if (response) {
 						predicateChanged = true;
 					}
 				}

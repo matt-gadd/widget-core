@@ -118,7 +118,7 @@ registerSuite('meta - Resize', {
 				width: 10
 			};
 
-			isFoo.onFirstCall().returns(false);
+			isFoo.onFirstCall().returns(true);
 			isFoo.onSecondCall().returns(true);
 
 			resize.get('foo', { isFoo, isBar });
